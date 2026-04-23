@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
-import { Player } from '@outercloud/animoo'
+import { player, Rect } from '@outercloud/animoo'
 
 const canvas = useTemplateRef('canvas')
 
 onMounted(() => {
-	const player = new Player(canvas.value!)
-	player.play()
+	const animation = player(canvas.value!, function* ({ add }: any) {
+		const rect = add(new Rect())
+	})
+	animation.play()
 })
 </script>
 
