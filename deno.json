@@ -1,0 +1,11 @@
+{
+	"name": "animoo",
+	"version": "0.0.0",
+	"exports": "./mod.ts",
+	"tasks": {
+		"dev": "cd playground && deno task dev"
+	},
+	"compilerOptions": {
+		"lib": ["dom", "dom.iterable", "esnext"]
+	}
+}
