@@ -1,3 +1,9 @@
 export * from './src/player.ts'
+export * from './src/color.ts'
+export * from './src/delay.ts'
+export * from './src/lerp.ts'
+export * from './src/react.ts'
+export * from './src/vector.ts'
 
 export * from './src/elements/rect.ts'
+export * from './src/elements/ellipse.ts'

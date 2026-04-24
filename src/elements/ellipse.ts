@@ -1,22 +1,18 @@
 import { OptionallyReactable, react, Reactive } from "../react"
 import { Vector2, Vector4 } from "../vector"
 
-export class Rect {
+export class Ellipse {
     public position: Reactive<Vector2> = react(new Vector2(0, 0))
     public origin: Reactive<Vector2> = react(new Vector2(0.5, 0.5))
     public size: Reactive<Vector2> = react(new Vector2(100, 100))
-    public rotation: Reactive<number> = react(0)
     public color: Reactive<Vector4> = react(new Vector4(1, 1, 1, 1))
-    public radius: Reactive<number> = react(0)
     public order: Reactive<number> = react(0)
 
     public constructor(options: {
         position?: OptionallyReactable<Vector2>
         origin?: OptionallyReactable<Vector2>
         size?: OptionallyReactable<Vector2>
-        rotation?: OptionallyReactable<number>
         color?: OptionallyReactable<Vector4>
-        radius?: OptionallyReactable<number>
         order?: OptionallyReactable<number>
     }) {
         for (const key of Object.keys(options)) {
