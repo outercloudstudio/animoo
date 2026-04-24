@@ -26,7 +26,8 @@ export class Rect {
     }
 
     public render(ctx: CanvasRenderingContext2D) {
-		ctx.fillStyle = 'red'
-		ctx.fillRect(0, 0, 100, 100)
+		ctx.fillStyle = `rgba(${this.color.value.x * 255}, ${this.color.value.y * 255}, ${this.color.value.z * 255}, ${this.color.value.w})`
+		
+        ctx.fillRect(this.position.value.x, this.position.value.y, this.size.value.x, this.size.value.y)
 	}
 }

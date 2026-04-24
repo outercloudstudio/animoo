@@ -14,18 +14,48 @@ export class Player {
 		this.context = this.generator({
 			add: (element: any) => {
 				this.elements.push(element)
-			},
+			
+                return element
+            },
 		})
 
 		this.context.next()
 
 		this.render(this.canvas)
+
+        requestAnimationFrame(() => {
+            this.update()
+        })
 	}
+
+    public update() {
+        const result = this.context.next()
+
+        this.render(this.canvas)
+
+        if(result.done) {
+            this.elements = []
+
+            this.context = this.generator({
+                add: (element: any) => {
+                    this.elements.push(element)
+                
+                    return element
+                },
+            })
+
+            this.context.next()
+        }
+
+        requestAnimationFrame(() => {
+            this.update()
+        })
+    }
 
 	public render(canvas: HTMLCanvasElement) {
 		const ctx = canvas.getContext('2d')!
 
-		console.log(this.elements)
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
 
 		for (const element of this.elements) {
 			element.render(ctx)
