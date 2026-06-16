@@ -3,7 +3,6 @@ import { Vector2, Vector4 } from "../vector.ts"
 
 export class Rect {
     private static renderPipeline: any = null
-    
     private static cameraBindGroup: any = null
     private static vertexBuffer: any = null
 
@@ -38,22 +37,72 @@ export class Rect {
 
         @group(0) @binding(0) var<uniform> camera: Camera;
 
+        struct VertexInput {
+            @location(0) uv: vec2f,
+
+            @location(1) position: vec2f,
+            @location(2) origin: vec2f,
+            @location(3) size: vec2f,
+            @location(4) rotation: f32,
+            @location(5) color: vec4f,
+            @location(6) radius: f32,
+        }
+
         struct VertexOut {
             @builtin(position) position : vec4f,
-            @location(0) color : vec4f
+            @location(0) color : vec4f,
+            @location(1) uv : vec2f,
+            @location(2) size : vec2f,
+            @location(3) radius : f32,
         }
 
         @vertex
-        fn vertex_main(@location(0) position: vec4f, @location(1) color: vec4f) -> VertexOut {
+        fn vertex_main(input: VertexInput) -> VertexOut {
             var output : VertexOut;
-            output.position = camera.viewProjection * position;
-            output.color = color;
+
+            let local_position = (input.uv - input.origin) * input.size;
+            let c = cos(input.rotation);
+            let s = sin(input.rotation);
+
+            let rotated_position = vec2f(
+                local_position.x * c - local_position.y * s,
+                local_position.x * s + local_position.y * c
+            );
+
+            let world_position = vec4f((rotated_position + input.position) / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0);
+
+            output.position = camera.viewProjection * world_position;
+            output.position = world_position;
+
+            output.color = input.color;
+            output.uv = input.uv;
+            output.size = input.size;
+            output.radius = input.radius;
+
             return output;
         }
 
         @fragment
-        fn fragment_main(fragData: VertexOut) -> @location(0) vec4f {
-            return fragData.color;
+        fn fragment_main(input: VertexOut) -> @location(0) vec4f {
+            let pixel = input.uv * input.size;
+
+            if (pixel.x < input.radius && pixel.y < input.radius && length(pixel - vec2f(input.radius, input.radius)) > input.radius) {
+                discard;
+            }
+
+            if (pixel.x > input.size.x - input.radius && pixel.y < input.radius && length(pixel - vec2f(input.size.x - input.radius, input.radius)) > input.radius) {
+                discard;
+            }
+
+            if (pixel.x < input.radius && pixel.y > input.size.y - input.radius && length(pixel - vec2f(input.radius, input.size.y - input.radius)) > input.radius) {
+                discard;
+            }
+
+            if (pixel.x > input.size.x - input.radius && pixel.y > input.size.y - input.radius && length(pixel - vec2f(input.size.x - input.radius, input.size.y - input.radius)) > input.radius) {
+                discard;
+            }
+
+            return input.color;
         }
         `
 
@@ -62,24 +111,12 @@ export class Rect {
         })
 
         const vertices = new Float32Array([
-            -0.5, 0.5, 0, 1,
-            1, 0, 0, 1,
-
-            -0.5, -0.5, 0,
-            1, 0, 1, 0, 1,
-
-            0.5, -0.5, 0, 1,
-            0, 0, 1, 1,
-
-
-            -0.5, 0.5, 0, 1,
-            1, 0, 0, 1,
-
-            0.5, -0.5, 0, 1,
-            0, 0, 1, 1,
-
-            0.5, 0.5, 0, 1,
-            1, 1, 1, 1,
+            0, 0, 
+            1, 0,
+            0, 1,
+            0, 1,
+            1, 0,
+            1, 1,
         ])
 
         const vertexBuffer = device.createBuffer({
@@ -95,16 +132,47 @@ export class Rect {
                     {
                         shaderLocation: 0,
                         offset: 0,
+                        format: "float32x2",
+                    },
+                ],
+                arrayStride: 8,
+                stepMode: "vertex",
+            },
+            {
+                attributes: [
+                    {
+                        shaderLocation: 5,
+                        offset: 0,
                         format: "float32x4",
                     },
                     {
                         shaderLocation: 1,
                         offset: 16,
-                        format: "float32x4",
+                        format: "float32x2",
+                    },
+                    {
+                        shaderLocation: 2,
+                        offset: 16 + 8,
+                        format: "float32x2",
+                    },
+                    {
+                        shaderLocation: 3,
+                        offset: 16 + 8 + 8,
+                        format: "float32x2",
+                    },
+                    {
+                        shaderLocation: 4,
+                        offset: 16 + 8 + 8 + 8,
+                        format: "float32",
+                    },
+                    {
+                        shaderLocation: 6,
+                        offset: 16 + 8 + 8 + 8 + 4,
+                        format: "float32",
                     },
                 ],
-                arrayStride: 32,
-                stepMode: "vertex",
+                arrayStride: 48,
+                stepMode: "instance",
             },
         ]
 
@@ -120,6 +188,18 @@ export class Rect {
                 targets: [
                     {
                         format: navigator.gpu.getPreferredCanvasFormat(),
+                        blend: {
+                            color: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one-minus-src-alpha",
+                            },
+                            alpha: {
+                                operation: "add",
+                                srcFactor: "one",
+                                dstFactor: "one-minus-src-alpha",
+                            }
+                        }
                     },
                 ],
             },
@@ -143,10 +223,28 @@ export class Rect {
         this.cameraBindGroup = cameraBindGroup
     }
 
-    public render(device: GPUDevice, passEncoder: GPURenderPassEncoder) {
+    public requestInstanceBufferSize(): number {
+        return (2 + 2 + 2 + 1 + 4 + 1) * 4
+    }
+
+    public render(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
+        const position = this.position.value
+        const origin = this.origin.value
+        const size = this.size.value
+        const rotation = this.rotation.value
+        const color = this.color.value
+        const radius = this.radius.value
+
+        const instance = new Float32Array([ color.x, color.y, color.z, color.w, position.x, position.y, origin.x, origin.y, size.x, size.y, rotation, radius ])
+
+        device.queue.writeBuffer(instanceBuffer, instancePointer, instance, 0, instance.length)
+
         passEncoder.setPipeline(Rect.renderPipeline)
         passEncoder.setBindGroup(0, Rect.cameraBindGroup)
         passEncoder.setVertexBuffer(0, Rect.vertexBuffer)
-        passEncoder.draw(6)
+        passEncoder.setVertexBuffer(1, instanceBuffer, instancePointer, instance.byteLength)
+        passEncoder.draw(6, 1)
+
+        return instance.byteLength
 	}
 }

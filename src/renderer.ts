@@ -26,10 +26,11 @@ export class Camera {
 export class Renderer {    
     private canvas: HTMLCanvasElement
 
-    private device: any = null
+    private device: GPUDevice | null = null
     private context: any = null
     private camera: any = null
     private cameraBuffer: any = null
+    private instanceBuffer: GPUBuffer | null = null
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas
@@ -57,15 +58,38 @@ export class Renderer {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
+        const instanceBuffer = device.createBuffer({
+            size: 256,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        })
+
         this.context = context
         this.device = device
         this.camera = camera
         this.cameraBuffer = cameraBuffer
+        this.instanceBuffer = instanceBuffer
 
         Rect.setup(device, cameraBuffer)
     }
 
     render(elements: any[]) {
+        if(!this.device || !this.instanceBuffer) throw new Error('Renderer is not setup!')
+
+        let requestedInstanceBufferSize = 0
+
+        for(const element of elements) {
+            requestedInstanceBufferSize += element.requestInstanceBufferSize()
+        }
+
+        if(requestedInstanceBufferSize > this.instanceBuffer.size) {
+            this.instanceBuffer.destroy()
+
+            this.instanceBuffer = this.device.createBuffer({
+                size: requestedInstanceBufferSize,
+                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+            })
+        }
+
         this.camera.aspect = this.canvas.width / this.canvas.height
 
         this.device.queue.writeBuffer(this.cameraBuffer, 0, this.camera.getViewProjectionMatrix())
@@ -87,8 +111,9 @@ export class Renderer {
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor)
 
+        let instanceBufferPointer = 0
         for(const element of elements) {
-            element.render(this.device, passEncoder)
+            instanceBufferPointer += element.render(this.device, passEncoder, this.instanceBuffer, instanceBufferPointer)
         }
 
         passEncoder.end()
