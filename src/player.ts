@@ -1,3 +1,5 @@
+import { Camera, Renderer } from "./renderer.ts";
+
 export class Player {
 	private canvas: HTMLCanvasElement
 	private generator: any
@@ -5,10 +7,18 @@ export class Player {
 	private context: any = null
 	private elements: any[] = []
 
+    private renderer: Renderer
+
 	constructor(canvas: HTMLCanvasElement, generator: any) {
 		this.canvas = canvas
 		this.generator = generator
+
+        this.renderer = new Renderer(canvas)
 	}
+
+    public async setup(camera: Camera) {
+        await this.renderer.setup(camera)
+    }
 
 	public play() {
 		this.context = this.generator({
@@ -21,7 +31,7 @@ export class Player {
 
 		this.context.next()
 
-		this.render(this.canvas)
+		this.render()
 
         requestAnimationFrame(() => {
             this.update()
@@ -31,7 +41,7 @@ export class Player {
     public update() {
         const result = this.context.next()
 
-        this.render(this.canvas)
+        this.render()
 
         if(result.done) {
             this.elements = []
@@ -52,17 +62,15 @@ export class Player {
         })
     }
 
-	public render(canvas: HTMLCanvasElement) {
-		const ctx = canvas.getContext('2d')!
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-		for (const element of this.elements) {
-			element.render(ctx)
-		}
+	public render() {
+        this.renderer.render(this.elements)
 	}
 }
 
-export function player(canvas: HTMLCanvasElement, generator: any): Player {
-	return new Player(canvas, generator)
+export async function player(canvas: HTMLCanvasElement, camera: Camera, generator: any): Promise<Player> {
+	const player = new Player(canvas, generator)
+    
+    await player.setup(camera)
+    
+    return player
 }

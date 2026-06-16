@@ -28,6 +28,7 @@ export class Renderer {
 
     private device: any = null
     private context: any = null
+    private camera: any = null
     private cameraBuffer: any = null
 
     constructor(canvas: HTMLCanvasElement) {
@@ -58,15 +59,16 @@ export class Renderer {
 
         this.context = context
         this.device = device
+        this.camera = camera
         this.cameraBuffer = cameraBuffer
 
         Rect.setup(device, cameraBuffer)
     }
 
-    render(camera: Camera) {
-        camera.aspect = this.canvas.width / this.canvas.height
+    render(elements: any[]) {
+        this.camera.aspect = this.canvas.width / this.canvas.height
 
-        this.device.queue.writeBuffer(this.cameraBuffer, 0, camera.getViewProjectionMatrix())
+        this.device.queue.writeBuffer(this.cameraBuffer, 0, this.camera.getViewProjectionMatrix())
 
         const commandEncoder = this.device.createCommandEncoder()
 
@@ -85,7 +87,9 @@ export class Renderer {
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor)
 
-        Rect.render(this.device, passEncoder)
+        for(const element of elements) {
+            element.render(this.device, passEncoder)
+        }
 
         passEncoder.end()
 

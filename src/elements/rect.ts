@@ -130,8 +130,6 @@ export class Rect {
         }
 
         const renderPipeline = device.createRenderPipeline(pipelineDescriptor)
-        
-        
 
         const cameraBindGroup = device.createBindGroup({
             layout: renderPipeline.getBindGroupLayout(0),
@@ -145,7 +143,7 @@ export class Rect {
         this.cameraBindGroup = cameraBindGroup
     }
 
-    public static render(device: GPUDevice, passEncoder: GPURenderPassEncoder) {
+    public render(device: GPUDevice, passEncoder: GPURenderPassEncoder) {
         passEncoder.setPipeline(Rect.renderPipeline)
         passEncoder.setBindGroup(0, Rect.cameraBindGroup)
         passEncoder.setVertexBuffer(0, Rect.vertexBuffer)
