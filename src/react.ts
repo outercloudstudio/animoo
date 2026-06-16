@@ -1,5 +1,5 @@
-import { frame } from './delay'
-import { lerp } from './lerp'
+import { frame } from './delay.ts'
+import { lerp } from './lerp.ts'
 
 export type Reactable<T> = () => T
 export type OptionallyReactable<T> = T | Reactable<T>

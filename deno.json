@@ -6,6 +6,10 @@
 		"dev": "cd playground && deno task dev"
 	},
 	"compilerOptions": {
-		"lib": ["dom", "dom.iterable", "esnext"]
+		"lib": ["dom", "dom.iterable", "esnext", "deno.window"],
+        "noImplicitAny": false
+	},
+	"imports": {
+		"gl-matrix": "npm:gl-matrix@^3.4.4"
 	}
 }

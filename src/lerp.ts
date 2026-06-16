@@ -1,4 +1,4 @@
-import { Vector2, Vector4 } from "./vector"
+import { Vector2, Vector4 } from "./vector.ts"
 
 export function lerp<T>(a: T, b: T, t: number): T {
     if (typeof a === 'number' && typeof b === 'number') {

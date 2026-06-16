@@ -1,5 +1,5 @@
-import { OptionallyReactable, react, Reactive } from "../react"
-import { Vector2, Vector4 } from "../vector"
+import { OptionallyReactable, react, Reactive } from "../react.ts"
+import { Vector2, Vector4 } from "../vector.ts"
 
 export class Ellipse {
     public position: Reactive<Vector2> = react(new Vector2(0, 0))

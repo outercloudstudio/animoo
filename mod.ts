@@ -4,6 +4,7 @@ export * from './src/delay.ts'
 export * from './src/lerp.ts'
 export * from './src/react.ts'
 export * from './src/vector.ts'
+export * from './src/renderer.ts'
 
 export * from './src/elements/rect.ts'
 export * from './src/elements/ellipse.ts'
