@@ -71,8 +71,19 @@ export class Spline implements RenderingElement {
             let upper_right = vec2f(max(input.position_a.x, max(input.position_b.x, input.position_c.x)), max(input.position_a.y, max(input.position_b.y, input.position_c.y)));
             let size = upper_right - lower_left;
 
-            output.position = vec4f((lower_left - vec2f(2 * input.size) + (size + vec2f(2 * input.size)) * input.uv) / vec2f(1920.0, 1200.0), 0.0, 1.0);
             output.uv = input.uv * (1.0 + input.size * 4 / size) - input.size * 2 / size;
+
+            let world_position = lower_left - vec2f(2 * input.size) + (size + vec2f(4 * input.size)) * input.uv;
+
+            let local_position = world_position - camera.position;
+
+            let camera_c = cos(-camera.rotation);
+            let camera_s = sin(-camera.rotation);
+            let rotated_view_position = vec2f(
+                local_position.x * camera_c - local_position.y * camera_s,
+                local_position.x * camera_s + local_position.y * camera_c
+            );
+            output.position = vec4f(rotated_view_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0 / camera.scale);
 
             output.color = input.color;
             output.size = input.size;
@@ -127,13 +138,8 @@ export class Spline implements RenderingElement {
 
             let distance = length(pixel - point);
 
-            if(distance > 20.0) {
-                if(t > 1.0) {
-                    return vec4f(1.0, t, 1.0, 0.2);
-                } else {
-                    return vec4f(1.0, t, 0.0, 0.2);
-                }
-                // discard;
+            if(distance > input.size) {
+                discard;
             }
 
             return input.color;
