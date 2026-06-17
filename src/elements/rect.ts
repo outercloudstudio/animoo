@@ -72,7 +72,7 @@ export class Rect implements RenderingElement {
                 local_position.x * s + local_position.y * c
             );
 
-            let world_position = vec2f((rotated_position + input.position));
+            let world_position = rotated_position + input.position - camera.position;
 
             let camera_c = cos(-camera.rotation);
             let camera_s = sin(-camera.rotation);
@@ -80,7 +80,7 @@ export class Rect implements RenderingElement {
                 world_position.x * camera_c - world_position.y * camera_s,
                 world_position.x * camera_s + world_position.y * camera_c
             );
-            output.position = vec4f((rotated_view_position - camera.position) / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0 / camera.scale);
+            output.position = vec4f(rotated_view_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0 / camera.scale);
 
             output.color = input.color;
             output.uv = input.uv;

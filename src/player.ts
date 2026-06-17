@@ -1,5 +1,6 @@
+import { Camera2D } from "./camera.ts";
 import { RenderingElement } from "./elements/element.ts";
-import { Camera2D, Renderer } from "./renderer.ts";
+import { Renderer } from "./renderer.ts";
 
 export class Player {
 	private canvas: HTMLCanvasElement
@@ -8,6 +9,7 @@ export class Player {
 	private contexts: any[] = []
 	private elements: RenderingElement[] = []
 
+    private camera: Camera2D = new Camera2D()
     private renderer: Renderer
 
 	constructor(canvas: HTMLCanvasElement, generator: any) {
@@ -17,13 +19,15 @@ export class Player {
         this.renderer = new Renderer(canvas)
 	}
 
-    public async setup(camera: Camera2D) {
-        await this.renderer.setup(camera)
+    public async setup() {
+        await this.renderer.setup()
     }
 
 	public play() {
+        this.camera = new Camera2D()
 		this.contexts = [
             this.generator({
+                camera: this.camera,
                 add: <T extends RenderingElement>(element: T): T => {
                     this.elements.push(element)
                 
@@ -71,8 +75,10 @@ export class Player {
         if(this.contexts.length === 0) {
             this.elements = []
 
+            this.camera = new Camera2D()
             this.contexts = [
                 this.generator({
+                    camera: this.camera,
                     add: (element: any) => {
                         this.elements.push(element)
 
@@ -88,14 +94,14 @@ export class Player {
     }
 
 	public render() {
-        this.renderer.render(this.elements)
+        this.renderer.render(this.elements, this.camera.toTransform())
 	}
 }
 
-export async function player(canvas: HTMLCanvasElement, camera: Camera2D, generator: any): Promise<Player> {
+export async function player(canvas: HTMLCanvasElement, generator: any): Promise<Player> {
 	const player = new Player(canvas, generator)
     
-    await player.setup(camera)
+    await player.setup()
     
     return player
 }

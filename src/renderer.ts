@@ -1,12 +1,12 @@
-import { mat4, vec2 } from 'gl-matrix'
+import { vec2 } from 'gl-matrix'
 import { Rect } from './elements/rect.ts';
 import { Ellipse } from './elements/ellipse.ts';
 import { RenderingElement } from "./elements/element.ts";
 
-export class Camera2D {
-    public position: vec2 = vec2.fromValues(0, 0)
-    public rotation: number = 0
-    public scale: number = 1
+export interface Camera2DTransform {
+    position: vec2
+    rotation: number
+    scale: number
 }
 
 export class Renderer {    
@@ -14,7 +14,6 @@ export class Renderer {
 
     private device: GPUDevice | null = null
     private context: GPUCanvasContext | null = null
-    private camera: Camera2D | null = null
     private cameraBuffer: GPUBuffer | null = null
     private instanceBuffer: GPUBuffer | null = null
 
@@ -22,7 +21,7 @@ export class Renderer {
         this.canvas = canvas
     }
 
-    public async setup(camera: Camera2D) {
+    public async setup() {
         const adapter = await navigator.gpu.requestAdapter()
 
         if (!adapter) throw new Error("Could not get WebGpu adapater!")
@@ -51,7 +50,6 @@ export class Renderer {
 
         this.context = context
         this.device = device
-        this.camera = camera
         this.cameraBuffer = cameraBuffer
         this.instanceBuffer = instanceBuffer
 
@@ -59,8 +57,8 @@ export class Renderer {
         Ellipse.setup(device, cameraBuffer)
     }
 
-    render(elements: RenderingElement[]) {
-        if(!this.device || !this.instanceBuffer || !this.context || !this.camera || !this.cameraBuffer) throw new Error('Renderer is not setup!')
+    render(elements: RenderingElement[], camera: Camera2DTransform) {        
+        if(!this.device || !this.instanceBuffer || !this.context || !this.cameraBuffer) throw new Error('Renderer is not setup!')
 
         let requestedInstanceBufferSize = 0
 
@@ -77,7 +75,7 @@ export class Renderer {
             })
         }
 
-        this.device.queue.writeBuffer(this.cameraBuffer, 0, new Float32Array([this.camera.position[0], this.camera.position[1], this.camera.rotation, this.camera.scale]))
+        this.device.queue.writeBuffer(this.cameraBuffer, 0, new Float32Array([camera.position[0], camera.position[1], camera.rotation, camera.scale]))
 
         const commandEncoder = this.device.createCommandEncoder()
 
