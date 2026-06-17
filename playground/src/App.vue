@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
-import { player, Rect, Vector2, ease, Ellipse, hex, Spline } from '@outercloud/animoo'
+import { player, Rect, Vector2, ease, Ellipse, hex, Spline, Triangle } from '@outercloud/animoo'
 
 const canvas = useTemplateRef('canvas')
 
@@ -15,14 +15,25 @@ onMounted(async () => {
             yield camera.scale.to(1, 2, ease)
         }
 
-        yield cameraAnimations()
+        // yield cameraAnimations()
 
         function* spline() {
-            const spline = add(new Spline({}))
+            const spline = add(new Spline({
+                size: 5,
+            }))
+            const head = add(new Triangle({
+                position: () => spline.positionB.value,
+                rotation: () => Math.atan2(spline.positionB.value.y - spline.positionC.value.y, spline.positionB.value.x - spline.positionC.value.x) - Math.PI / 2,
+                size: new Vector2(50, 40)
+            }))
 
             yield spline.positionB.to(new Vector2(800, 300), 4, ease)
             yield* spline.positionC.to(new Vector2(0, 800), 4, ease)
             yield* spline.positionC.to(new Vector2(300, 0), 4, ease)
+            yield* spline.positionB.to(new Vector2(400, -400), 4, ease)
+            yield* spline.positionB.to(new Vector2(-400, -400), 4, ease)
+            yield* spline.positionB.to(new Vector2(-400, 400), 4, ease)
+            yield* spline.positionB.to(new Vector2(400, 400), 4, ease)
         }
 
 		add(new Rect({
