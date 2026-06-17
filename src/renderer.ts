@@ -2,6 +2,7 @@ import { vec2 } from 'gl-matrix'
 import { Rect } from './elements/rect.ts';
 import { Ellipse } from './elements/ellipse.ts';
 import { RenderingElement } from "./elements/element.ts";
+import { Spline } from "./elements/spline.ts";
 
 export interface Camera2DTransform {
     position: vec2
@@ -55,6 +56,7 @@ export class Renderer {
 
         Rect.setup(device, cameraBuffer)
         Ellipse.setup(device, cameraBuffer)
+        Spline.setup(device, cameraBuffer)
     }
 
     render(elements: RenderingElement[], camera: Camera2DTransform) {        

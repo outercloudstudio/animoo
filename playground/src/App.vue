@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
 import { player, Rect, Vector2, ease, Ellipse, hex } from '@outercloud/animoo'
+import { Spline } from '../../src/elements/spline'
 
 const canvas = useTemplateRef('canvas')
 
@@ -100,6 +101,8 @@ onMounted(async () => {
         yield createDataB(0)
         yield createDataB(1)
         yield createDataB(2)
+
+        add(new Spline({}))
 	})
 
 	animation.play()
