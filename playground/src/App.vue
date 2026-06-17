@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
-import { player, Rect, Vector2, ease, Renderer, Camera, Vector4 } from '@outercloud/animoo'
+import { player, Rect, Vector2, ease, Renderer, Camera, Vector4, Ellipse } from '@outercloud/animoo'
 import { mat4, vec2, vec3 } from 'gl-matrix'
 
 const canvas = useTemplateRef('canvas')
@@ -15,9 +15,10 @@ onMounted(async () => {
             radius: 30,
         }))
 
-        const rect2 = add(new Rect({
-            position: new Vector2(1, 0),
-            color: new Vector4(0, 1, 0, 0.5)
+        add(new Ellipse({
+            position: new Vector2(0, 0),
+            size: new Vector2(300, 100),
+            color: new Vector4(0, 1, 0, 0.5),
         }))
         
         yield* rect.radius.to(0, 1, ease)

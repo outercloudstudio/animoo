@@ -1,5 +1,7 @@
 import { mat4, vec3 } from 'gl-matrix'
 import { Rect } from './elements/rect.ts';
+import { Ellipse } from './elements/ellipse.ts';
+import { RenderingElement } from "./elements/element.ts";
 
 export class Camera {
     public position: vec3 = vec3.fromValues(0, 0, 3)
@@ -27,9 +29,9 @@ export class Renderer {
     private canvas: HTMLCanvasElement
 
     private device: GPUDevice | null = null
-    private context: any = null
-    private camera: any = null
-    private cameraBuffer: any = null
+    private context: GPUCanvasContext | null = null
+    private camera: Camera | null = null
+    private cameraBuffer: GPUBuffer | null = null
     private instanceBuffer: GPUBuffer | null = null
 
     constructor(canvas: HTMLCanvasElement) {
@@ -70,10 +72,11 @@ export class Renderer {
         this.instanceBuffer = instanceBuffer
 
         Rect.setup(device, cameraBuffer)
+        Ellipse.setup(device, cameraBuffer)
     }
 
-    render(elements: any[]) {
-        if(!this.device || !this.instanceBuffer) throw new Error('Renderer is not setup!')
+    render(elements: RenderingElement[]) {
+        if(!this.device || !this.instanceBuffer || !this.context || !this.camera || !this.cameraBuffer) throw new Error('Renderer is not setup!')
 
         let requestedInstanceBufferSize = 0
 

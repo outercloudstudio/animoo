@@ -1,10 +1,11 @@
 import { OptionallyReactable, react, Reactive } from "../react.ts"
 import { Vector2, Vector4 } from "../vector.ts"
+import { RenderingElement } from "./element.ts";
 
-export class Rect {
-    private static renderPipeline: any = null
-    private static cameraBindGroup: any = null
-    private static vertexBuffer: any = null
+export class Rect implements RenderingElement {
+    private static renderPipeline: GPURenderPipeline | null = null
+    private static cameraBindGroup: GPUBindGroup | null = null
+    private static vertexBuffer: GPUBuffer | null = null
 
     public position: Reactive<Vector2> = react(new Vector2(0, 0))
     public origin: Reactive<Vector2> = react(new Vector2(0.5, 0.5))
@@ -228,6 +229,8 @@ export class Rect {
     }
 
     public render(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
+        if(!Rect.renderPipeline || !Rect.cameraBindGroup || !Rect.vertexBuffer) throw new Error('Rect is not setup!')
+        
         const position = this.position.value
         const origin = this.origin.value
         const size = this.size.value
