@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
-import { player, Rect, Vector2, ease, Renderer, Camera, Vector4, Ellipse } from '@outercloud/animoo'
-import { mat4, vec2, vec3 } from 'gl-matrix'
+import { player, Rect, Vector2, ease, Renderer, Camera, Vector4, Ellipse, hex } from '@outercloud/animoo'
 
 const canvas = useTemplateRef('canvas')
 
@@ -9,26 +8,89 @@ onMounted(async () => {
     const camera = new Camera()
 
 	const animation = await player(canvas.value!, camera, function* ({ add }: any) {
-		const rect = add(new Rect({
-            color: new Vector4(0, 0, 1, 1),
-            size: new Vector2(600, 300),
-            radius: 30,
+		add(new Rect({
+            color: hex('#100f21'),
+            size: new Vector2(1920, 1200),
         }))
 
-        add(new Ellipse({
-            position: new Vector2(0, 0),
-            size: new Vector2(300, 100),
-            color: new Vector4(0, 1, 0, 0.5),
-        }))
-        
-        yield* rect.radius.to(0, 1, ease)
-        yield* rect.color.to(new Vector4(1, 0, 0, 1), 1, ease)
-        yield* rect.rotation.to(Math.PI, 4, ease)
-        yield* rect.radius.to(30, 1, ease)
-        yield* rect.color.to(new Vector4(0, 0, 1, 1), 1, ease)
-        // yield* rect.position.to(new Vector2(100, 100), 1, ease)
-        // yield* rect.position.to(new Vector2(200, 0), 1, ease)
-        // yield* rect.position.to(new Vector2(0, 0), 1, ease)
+        const color = hex('#1c1a31')
+        const colorBorder = hex('#232235')
+
+        function createSquare(location: Vector2) {
+            const squareBackground = add(new Rect({
+                position: location,
+                color: colorBorder,
+                size: new Vector2(260, 260),
+                radius: 35
+            }))
+
+            const square = add(new Rect({
+                position: location,
+                color: color,
+                size: new Vector2(250, 250),
+                radius: 30
+            }))
+        }
+
+        for(let x = -1; x <= 1; x++) {
+            for(let y = -1; y <= 1; y++) {
+                createSquare(new Vector2(x * 280, y * 280))
+            }
+        }
+
+        function* createDataA(index: number) {
+            const data = add(new Ellipse({
+                position: new Vector2(-280 * 2 - index * 280, 280 - index * 280),
+                color: hex('#a18ef4'),
+                size: new Vector2(150, 150),
+            }))
+
+            const size = data.size.value
+            data.size.value = new Vector2(0, 0)
+            yield* data.size.to(size, 1, ease)
+
+            yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 1, ease)
+            yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 1, ease)
+            yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 1, ease)
+            yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 1, ease)
+            
+            for(let i = 0; i < index; i++) {
+                yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 1, ease)
+            }
+
+            yield* data.size.to(new Vector2(0, 0), 1, ease)
+        }
+
+        yield createDataA(0)
+        yield createDataA(1)
+        yield createDataA(2)
+
+        function* createDataB(index: number) {
+            const data = add(new Ellipse({
+                position: new Vector2(-280 + index * 280, 280 * 2 + index * 280),
+                color: hex('#29abf2'),
+                size: new Vector2(150, 150),
+            }))
+
+            const size = data.size.value
+            data.size.value = new Vector2(0, 0)
+            yield* data.size.to(size, 1, ease)
+
+            yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 1, ease)
+            yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 1, ease)
+            yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 1, ease)
+            yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 1, ease)
+            
+            for(let i = 0; i < index; i++) {
+                yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 1, ease)
+            }
+
+            yield* data.size.to(new Vector2(0, 0), 1, ease)
+        }
+
+        yield createDataB(0)
+        yield createDataB(1)
+        yield createDataB(2)
 	})
 
 	animation.play()

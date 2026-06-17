@@ -1,11 +1,12 @@
+import { RenderingElement } from "./elements/element.ts";
 import { Camera, Renderer } from "./renderer.ts";
 
 export class Player {
 	private canvas: HTMLCanvasElement
 	private generator: any
 
-	private context: any = null
-	private elements: any[] = []
+	private contexts: any[] = []
+	private elements: RenderingElement[] = []
 
     private renderer: Renderer
 
@@ -21,40 +22,64 @@ export class Player {
     }
 
 	public play() {
-		this.context = this.generator({
-			add: (element: any) => {
-				this.elements.push(element)
-			
-                return element
-            },
-		})
+		this.contexts = [
+            this.generator({
+                add: <T extends RenderingElement>(element: T): T => {
+                    this.elements.push(element)
+                
+                    return element
+                },
+            })
+        ]
 
-		this.context.next()
-
-		this.render()
+		this.update()
 
         requestAnimationFrame(() => {
             this.update()
         })
 	}
 
+    private handleContext(context: any) {
+        let unfinishedContexts: any[] = []
+
+        let result = context.next()
+
+        while(!result.done && result.value !== null) {
+            unfinishedContexts = unfinishedContexts.concat(this.handleContext(result.value))
+
+            result = context.next()
+        }
+
+        if(!result.done) {
+            unfinishedContexts.unshift(context)
+        }
+
+        return unfinishedContexts
+    }
+
     public update() {
-        const result = this.context.next()
+        let unfinishedContexts: any[] = []
+
+        for(const context of this.contexts) {
+            unfinishedContexts = unfinishedContexts.concat(this.handleContext(context))
+        }
+
+        this.contexts = unfinishedContexts
 
         this.render()
 
-        if(result.done) {
+        if(this.contexts.length === 0) {
             this.elements = []
 
-            this.context = this.generator({
-                add: (element: any) => {
-                    this.elements.push(element)
-                
-                    return element
-                },
-            })
+            this.contexts = [
+                this.generator({
+                    add: (element: any) => {
+                        this.elements.push(element)
 
-            this.context.next()
+                        return element
+                    },
+                })
+            ]
         }
 
         requestAnimationFrame(() => {
