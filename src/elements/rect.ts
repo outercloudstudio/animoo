@@ -33,7 +33,9 @@ export class Rect implements RenderingElement {
     public static setup(device: GPUDevice, cameraBuffer: GPUBuffer) {
         const shaders = `
         struct Camera {
-            viewProjection: mat4x4f,
+            position: vec2f,
+            rotation: f32,
+            scale: f32,
         }
 
         @group(0) @binding(0) var<uniform> camera: Camera;
@@ -70,10 +72,15 @@ export class Rect implements RenderingElement {
                 local_position.x * s + local_position.y * c
             );
 
-            let world_position = vec4f((rotated_position + input.position) / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0);
+            let world_position = vec2f((rotated_position + input.position));
 
-            output.position = camera.viewProjection * world_position;
-            output.position = world_position;
+            let camera_c = cos(-camera.rotation);
+            let camera_s = sin(-camera.rotation);
+            let rotated_view_position = vec2f(
+                world_position.x * camera_c - world_position.y * camera_s,
+                world_position.x * camera_s + world_position.y * camera_c
+            );
+            output.position = vec4f((rotated_view_position - camera.position) / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0 / camera.scale);
 
             output.color = input.color;
             output.uv = input.uv;

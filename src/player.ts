@@ -1,5 +1,5 @@
 import { RenderingElement } from "./elements/element.ts";
-import { Camera, Renderer } from "./renderer.ts";
+import { Camera2D, Renderer } from "./renderer.ts";
 
 export class Player {
 	private canvas: HTMLCanvasElement
@@ -17,7 +17,7 @@ export class Player {
         this.renderer = new Renderer(canvas)
 	}
 
-    public async setup(camera: Camera) {
+    public async setup(camera: Camera2D) {
         await this.renderer.setup(camera)
     }
 
@@ -92,7 +92,7 @@ export class Player {
 	}
 }
 
-export async function player(canvas: HTMLCanvasElement, camera: Camera, generator: any): Promise<Player> {
+export async function player(canvas: HTMLCanvasElement, camera: Camera2D, generator: any): Promise<Player> {
 	const player = new Player(canvas, generator)
     
     await player.setup(camera)

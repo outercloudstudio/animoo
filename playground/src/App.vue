@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
-import { player, Rect, Vector2, ease, Renderer, Camera, Vector4, Ellipse, hex } from '@outercloud/animoo'
+import { player, Rect, Vector2, ease, Renderer, Camera2D, Vector4, Ellipse, hex } from '@outercloud/animoo'
 
 const canvas = useTemplateRef('canvas')
 
 onMounted(async () => {
-    const camera = new Camera()
+    const camera = new Camera2D()
+    camera.position[0] = 200
+    camera.rotation = Math.PI / 4
 
 	const animation = await player(canvas.value!, camera, function* ({ add }: any) {
 		add(new Rect({

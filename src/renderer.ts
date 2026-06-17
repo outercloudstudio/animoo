@@ -1,28 +1,12 @@
-import { mat4, vec3 } from 'gl-matrix'
+import { mat4, vec2 } from 'gl-matrix'
 import { Rect } from './elements/rect.ts';
 import { Ellipse } from './elements/ellipse.ts';
 import { RenderingElement } from "./elements/element.ts";
 
-export class Camera {
-    public position: vec3 = vec3.fromValues(0, 0, 3)
-    public target: vec3 = vec3.fromValues(0, 0, 0)
-    public up: vec3 = vec3.fromValues(0, 1, 0)
-
-    public fovY = Math.PI / 4
-    public aspect = 1
-    public near = 0.1
-    public far = 100
-
-    private view = mat4.create()
-    private projection = mat4.create()
-    private viewProjection = mat4.create()
-
-    getViewProjectionMatrix(): Float32Array {
-        mat4.lookAt(this.view, this.position, this.target, this.up)
-        mat4.perspective(this.projection, this.fovY, this.aspect, this.near, this.far)
-        mat4.multiply(this.viewProjection, this.projection, this.view)
-        return this.viewProjection as Float32Array
-    }
+export class Camera2D {
+    public position: vec2 = vec2.fromValues(0, 0)
+    public rotation: number = 0
+    public scale: number = 1
 }
 
 export class Renderer {    
@@ -30,7 +14,7 @@ export class Renderer {
 
     private device: GPUDevice | null = null
     private context: GPUCanvasContext | null = null
-    private camera: Camera | null = null
+    private camera: Camera2D | null = null
     private cameraBuffer: GPUBuffer | null = null
     private instanceBuffer: GPUBuffer | null = null
 
@@ -38,7 +22,7 @@ export class Renderer {
         this.canvas = canvas
     }
 
-    public async setup(camera: Camera) {
+    public async setup(camera: Camera2D) {
         const adapter = await navigator.gpu.requestAdapter()
 
         if (!adapter) throw new Error("Could not get WebGpu adapater!")
@@ -56,7 +40,7 @@ export class Renderer {
         })
 
         const cameraBuffer = device.createBuffer({
-            size: 64,
+            size: 16,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
@@ -93,9 +77,7 @@ export class Renderer {
             })
         }
 
-        this.camera.aspect = this.canvas.width / this.canvas.height
-
-        this.device.queue.writeBuffer(this.cameraBuffer, 0, this.camera.getViewProjectionMatrix())
+        this.device.queue.writeBuffer(this.cameraBuffer, 0, new Float32Array([this.camera.position[0], this.camera.position[1], this.camera.rotation, this.camera.scale]))
 
         const commandEncoder = this.device.createCommandEncoder()
 
