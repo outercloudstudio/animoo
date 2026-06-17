@@ -8,3 +8,4 @@ export * from './src/renderer.ts'
 
 export * from './src/elements/rect.ts'
 export * from './src/elements/ellipse.ts'
+export * from './src/elements/spline.ts'

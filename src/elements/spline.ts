@@ -7,9 +7,9 @@ export class Spline implements RenderingElement {
     private static cameraBindGroup: GPUBindGroup | null = null
     private static vertexBuffer: GPUBuffer | null = null
 
-    public positionA: Reactive<Vector2> = react(new Vector2(-100, -100))
-    public positionB: Reactive<Vector2> = react(new Vector2(-100, 100))
-    public positionC: Reactive<Vector2> = react(new Vector2(100, 100))
+    public positionA: Reactive<Vector2> = react(new Vector2(0, 0))
+    public positionB: Reactive<Vector2> = react(new Vector2(300, 300))
+    public positionC: Reactive<Vector2> = react(new Vector2(300, 0))
     public color: Reactive<Vector4> = react(new Vector4(1, 1, 1, 1))
     public size: Reactive<number> = react(10)
     public radius: Reactive<number> = react(0)
@@ -43,9 +43,9 @@ export class Spline implements RenderingElement {
         struct VertexInput {
             @location(0) uv: vec2f,
 
-            @location(1) positionA: vec2f,
-            @location(2) positionB: vec2f,
-            @location(3) positionC: vec2f,
+            @location(1) position_a: vec2f,
+            @location(2) position_b: vec2f,
+            @location(3) position_c: vec2f,
             @location(4) color: vec4f,
             @location(5) size: f32,
             @location(6) radius: f32,
@@ -56,9 +56,9 @@ export class Spline implements RenderingElement {
 
             @location(0) color : vec4f,
             @location(1) uv : vec2f,
-            @location(2) positionA : vec2f,
-            @location(3) positionB : vec2f,
-            @location(4) positionC : vec2f,
+            @location(2) position_a : vec2f,
+            @location(3) position_b : vec2f,
+            @location(4) position_c : vec2f,
             @location(5) size : f32,
             @location(6) radius: f32,
         }
@@ -67,19 +67,74 @@ export class Spline implements RenderingElement {
         fn vertex_main(input: VertexInput) -> VertexOut {
             var output : VertexOut;
 
-            output.position = vec4f(input.uv, 0.0, 3.0);
+            let lower_left = vec2f(min(input.position_a.x, min(input.position_b.x, input.position_c.x)), min(input.position_a.y, min(input.position_b.y, input.position_c.y)));
+            let upper_right = vec2f(max(input.position_a.x, max(input.position_b.x, input.position_c.x)), max(input.position_a.y, max(input.position_b.y, input.position_c.y)));
+            let size = upper_right - lower_left;
+
+            output.position = vec4f((lower_left - vec2f(2 * input.size) + (size + vec2f(2 * input.size)) * input.uv) / vec2f(1920.0, 1200.0), 0.0, 1.0);
+            output.uv = input.uv * (1.0 + input.size * 4 / size) - input.size * 2 / size;
 
             output.color = input.color;
-            output.uv = input.uv;
             output.size = input.size;
             output.radius = input.radius;
+            output.position_a = input.position_a;
+            output.position_b = input.position_b;
+            output.position_c = input.position_c;
 
             return output;
+        }
+
+        fn optimize(t: f32, pixel: vec2f, a: vec2f, b: vec2f, c: vec2f) -> f32 {
+            let f_x = a.x + (2 * c.x - 2 * a.x) * t + (a.x + b.x - 2 * c.x) * t * t - pixel.x;
+            let f_y = a.y + (2 * c.y - 2 * a.y) * t + (a.y + b.y - 2 * c.y) * t * t - pixel.y;
+            let f_p_x = 2 * f_x * (2 * c.x - 2 * a.x + 2 * (a.x + b.x - 2 * c.x) * t);
+            let f_p_y = 2 * f_y * (2 * c.y - 2 * a.y + 2 * (a.y + b.y - 2 * c.y) * t);
+            let f_p = f_p_x + f_p_y;
+
+            let f_pp = 4 * (2 * c * c - 2 * a * c + a * b - a * c) + 8 * t * (a * c + b * c - 2 * c * c + 2 * c * b - 2 * a * b - 2 * c * c + 2 * a * c) + 12 * t * t * (a * b + b * b - 2 * b * c - a * c - b * c + 2 * c * c);
+
+            return t - f_p / (f_pp.x + f_pp.y);
         }
 
         @fragment
         fn fragment_main(input: VertexOut) -> @location(0) vec4f {
             let position = camera.position;
+
+            let lower_left = vec2f(min(input.position_a.x, min(input.position_b.x, input.position_c.x)), min(input.position_a.y, min(input.position_b.y, input.position_c.y)));
+            let upper_right = vec2f(max(input.position_a.x, max(input.position_b.x, input.position_c.x)), max(input.position_a.y, max(input.position_b.y, input.position_c.y)));
+
+            let pixel = vec2f(lower_left + (upper_right - lower_left) * input.uv);
+
+            var t = 1.0;
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+            t = optimize(t, pixel, input.position_a, input.position_b, input.position_c);
+
+            t = max(min(t, 1.0), 0.0);
+
+            let point = input.position_a + (2 * input.position_c - 2 * input.position_a) * t + (input.position_a + input.position_b - 2 * input.position_c) * t * t;
+
+            let distance = length(pixel - point);
+
+            if(distance > 20.0) {
+                if(t > 1.0) {
+                    return vec4f(1.0, t, 1.0, 0.2);
+                } else {
+                    return vec4f(1.0, t, 0.0, 0.2);
+                }
+                // discard;
+            }
 
             return input.color;
         }
@@ -91,9 +146,9 @@ export class Spline implements RenderingElement {
 
         const vertices = new Float32Array([
             0, 0, 
-            1, 0,
-            0, 1,
-            0, 1,
+            0, 1, 
+            1, 1, 
+            0, 0, 
             1, 0,
             1, 1,
         ])
