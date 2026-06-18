@@ -38,9 +38,9 @@ export class Player {
 
 		this.update()
 
-        requestAnimationFrame(() => {
-            this.update()
-        })
+        // requestAnimationFrame(() => {
+        //     this.update()
+        // })
 	}
 
     private handleContext(context: any) {
@@ -88,9 +88,9 @@ export class Player {
             ]
         }
 
-        requestAnimationFrame(() => {
-            this.update()
-        })
+        // requestAnimationFrame(() => {
+        //     this.update()
+        // })
     }
 
 	public render() {

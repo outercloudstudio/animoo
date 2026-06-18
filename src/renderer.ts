@@ -4,6 +4,7 @@ import { Ellipse } from './elements/ellipse.ts';
 import { RenderingElement } from "./elements/element.ts";
 import { Spline } from "./elements/spline.ts";
 import { Triangle } from "./elements/triangle.ts";
+import { Letter } from "./elements/letter.ts";
 
 export interface Camera2DTransform {
     position: vec2
@@ -59,6 +60,7 @@ export class Renderer {
         Ellipse.setup(device, cameraBuffer)
         Spline.setup(device, cameraBuffer)
         Triangle.setup(device, cameraBuffer)
+        Letter.setup(device, cameraBuffer)
     }
 
     render(elements: RenderingElement[], camera: Camera2DTransform) {        
