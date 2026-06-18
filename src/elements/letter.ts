@@ -6,6 +6,9 @@ import { Font } from "../font.ts";
 import { vec2 } from 'gl-matrix'
 import earcut from 'earcut';
 
+type Line = { start: { x: number, y: number }, end: { x: number, y: number }, control?: { x: number, y: number } }
+type Contour = { cutout: boolean, lines: Line[] }
+
 export class Letter implements RenderingElement {
     private static renderPipeline: GPURenderPipeline | null = null
     private static cameraBindGroup: GPUBindGroup | null = null
@@ -207,46 +210,97 @@ export class Letter implements RenderingElement {
 
         if(!glyph) throw new Error('Failed to load glyphs!')
 
-        let vertices: number[] = []
-        let holes: number[] = []
+        let contours: Contour[] = []
 
         let contourStart = 0
         for(const contourEnd of glyph.endPtsOfContours) {
-            let lastPoint: { x: number, y: number, onCurve: boolean } | null = null
+            const contour: Contour = {
+                cutout: false,
+                lines: []
+            }
 
             const firstPoint = glyph.points[contourStart]
 
             let area = 0
-            const firstVertex = vertices.length / 2
 
+            let lastPoint: { x: number, y: number } | null = null
+            let lastControl: { x: number, y: number } | null = null
             for(let pointIndex = contourStart; pointIndex <= contourEnd + 1; pointIndex++) {
                 const point = pointIndex > contourEnd ? firstPoint : glyph.points[pointIndex]
 
-                if(!point.onCurve) continue
+                if(point.onCurve) {
+                    if(lastPoint) {
+                        area += 1 / 2 * (lastPoint.x * point.y - point.x * lastPoint.y)
 
-                vertices = vertices.concat([ point.x, point.y ])
+                        if(lastControl) {
+                            contour.lines.push({
+                                start: lastPoint,
+                                end: point,
+                                control: lastControl
+                            })
+                        } else {
+                            contour.lines.push({
+                                start: lastPoint,
+                                end: point
+                            })
+                        }
+                    }
 
-                if(lastPoint !== null) {
-                    const start = lastPoint
-                    const end = point
-                    
-                    console.log('Line', start, end)
+                    lastPoint = point
+                    lastControl = null
+                } else {
+                    if(lastControl) {
+                        const midPoint = {
+                            x: lastControl.x / 2 + point.x / 2,
+                            y: lastControl.y / 2 + point.y / 2
+                        }
 
-                    area += 1 / 2 * (start.x * end.y - end.x * start.y)
+                        if(lastPoint) {
+                            contour.lines.push({
+                                start: lastPoint,
+                                end: point,
+                                control: lastControl
+                            })
+                        }
+
+                        lastPoint = midPoint
+                    }
+
+                    lastControl = point
                 }
-
-                lastPoint = point
             }
 
-            console.log('Area', area)
+            contour.cutout = area > 0
 
-            if(area > 0) {
-                holes.push(firstVertex)
-            }
+            contours.push(contour)
 
             contourStart = contourEnd + 1
         }
 
+        console.log(contours)
+        
+        let vertices: number[] = []
+        let holes: number[] = []
+
+        for(const contour of contours) {
+            if(contour.cutout) holes.push(vertices.length / 2)
+
+            for(const line of contour.lines) {
+                vertices = vertices.concat([ line.start.x, line.start.y ])
+
+                if(line.control) {
+                    const area = (line.control.x - line.start.x) * (line.end.y - line.start.y) - (line.control.y - line.start.y) * (line.end.x - line.start.x)
+
+                    if(area > 0) {
+                        vertices = vertices.concat([ line.control.x, line.control.y ])
+                    }
+                }
+            }
+
+            const lastLine = contour.lines[contour.lines.length - 1]
+            vertices = vertices.concat([ lastLine.end.x, lastLine.end.y ])
+        }
+            
         console.log('Vertices', vertices, holes)
 
         const triangles = earcut(vertices, holes)
