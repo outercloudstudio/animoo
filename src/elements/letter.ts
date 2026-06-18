@@ -92,7 +92,7 @@ export class Letter implements RenderingElement {
             // output.position = vec4f(rotated_view_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0 / camera.scale);
 
             let local_position = input.vertex_position;
-            output.position = vec4f(local_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.5 / camera.scale);
+            output.position = vec4f(local_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0 / camera.scale);
 
             output.color = input.color;
             output.vertex_position = input.vertex_position;
@@ -230,12 +230,13 @@ export class Letter implements RenderingElement {
     private buildMesh(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number[] {
         const font = this.font.value
         const character = this.character.value
+        const size = this.size.value
 
         if(!font) throw new Error('Tried to render Letter with no font!')
 
-        // const glyph = font.getGlyph(0)
-        // const glyph = font.getGlyph(1)
-        const glyph = font.getGlyph(26)
+        const scaler = 1 / font.unitsPerEm * 96 / 72 * size
+
+        const glyph = font.getGlyph(character)
 
         if(!glyph) throw new Error('Failed to load glyphs!')
 
@@ -285,6 +286,8 @@ export class Letter implements RenderingElement {
                         }
 
                         if(lastPoint) {
+                            area += 1 / 2 * (lastPoint.x * midPoint.y - midPoint.x * lastPoint.y)
+
                             contour.lines.push({
                                 start: lastPoint,
                                 end: midPoint,
@@ -300,16 +303,18 @@ export class Letter implements RenderingElement {
             }
 
             contour.cutout = area > 0
-
+            
+            console.log(contour, area)
+            
             contours.push(contour)
 
             contourStart = contourEnd + 1
         }
 
-        console.log(contours)
+        contours = contours.sort((a, b) => (a.cutout ? 1 : 0) - (b.cutout ? 1 : 0))
         
         let vertices: number[] = []
-        let holes: number[] = []
+        const holes: number[] = []
 
         let outsideCurveVertexData: number[] = []
         let insideCurveVertexData: number[] = []
@@ -326,9 +331,9 @@ export class Letter implements RenderingElement {
                     if(area > 0) {
                         vertices = vertices.concat([ line.control.x, line.control.y ])
 
-                        insideCurveVertexData = insideCurveVertexData.concat([ line.start.x, line.start.y, 0, 0, 2, line.control.x, line.control.y, 0.5, 0, 2, line.end.x, line.end.y, 1, 1, 2])
+                        insideCurveVertexData = insideCurveVertexData.concat([ line.start.x * scaler, line.start.y * scaler, 0, 0, 2, line.control.x * scaler, line.control.y * scaler, 0.5, 0, 2, line.end.x * scaler, line.end.y * scaler, 1, 1, 2])
                     } else {
-                        outsideCurveVertexData = outsideCurveVertexData.concat([ line.start.x, line.start.y, 0, 0, 1, line.control.x, line.control.y, 0.5, 0, 1, line.end.x, line.end.y, 1, 1, 1])
+                        outsideCurveVertexData = outsideCurveVertexData.concat([ line.start.x * scaler, line.start.y * scaler, 0, 0, 1, line.control.x * scaler, line.control.y * scaler, 0.5, 0, 1, line.end.x * scaler, line.end.y * scaler, 1, 1, 1])
                     }
                 }
             }
@@ -336,14 +341,12 @@ export class Letter implements RenderingElement {
             const lastLine = contour.lines[contour.lines.length - 1]
             vertices = vertices.concat([ lastLine.end.x, lastLine.end.y ])
         }
-            
-        console.log('Vertices', vertices, holes)
 
         const triangles = earcut(vertices, holes)
 
-        console.log('Triangles', triangles)
+        console.log(vertices, holes, triangles)
 
-        return triangles.flatMap(index => [vertices[index * 2], vertices[index * 2 + 1], 0, 0, 0]).concat(outsideCurveVertexData).concat(insideCurveVertexData)
+        return triangles.flatMap(index => [vertices[index * 2] * scaler, vertices[index * 2 + 1] * scaler, 0, 0, 0]).concat(outsideCurveVertexData).concat(insideCurveVertexData)
     }
 
     public requestInstanceBufferSize(): number {

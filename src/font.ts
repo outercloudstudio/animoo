@@ -2,9 +2,12 @@ export type Glyph = { numberOfContours: number, xMin: number, yMin: number, xMax
 
 export class Font {
     public url: string
+    public unitsPerEm: number = 0
     
     private loca: any = null
     private glyf: Glyph[] | null = null
+    private format: any | null = null
+    private bytes: Uint8Array<ArrayBuffer> | null = null
 
     constructor(url: string) {
         this.url = url
@@ -13,6 +16,8 @@ export class Font {
     public async load() {
         const response = await fetch(this.url)
         const bytes = await response.bytes()
+
+        this.bytes = bytes
 
         let pointer = 0
 
@@ -81,8 +86,6 @@ export class Font {
             }
         }
 
-        console.log('Tables', tables)
-
         pointer = tables['head'].offset
 
         const header = {
@@ -106,7 +109,7 @@ export class Font {
             glyphDataFormat: getInt16(),
         }
 
-        console.log('Header', header)
+        this.unitsPerEm = header.unitsPerEm
 
         pointer = tables['maxp'].offset
 
@@ -128,8 +131,6 @@ export class Font {
             maxComponentDepth: getUInt16(),
         }
 
-        console.log('Maximum Profile', maximumProfile)
-
         pointer = tables['loca'].offset
 
         const loca: number[] = []
@@ -142,8 +143,6 @@ export class Font {
         }
 
         this.loca = loca
-
-        console.log('Loca', loca)
 
         pointer = tables['glyf'].offset
 
@@ -244,104 +243,149 @@ export class Font {
 
         this.glyf = glyf
 
-        console.log('Glyf', glyf)
-
         pointer = tables['cmap'].offset
 
-        // const cmap: any = {
-        //     version: getUInt16(),
-        //     numTables: getUInt16(),
-        //     encodingRecords: [],
-        //     glyphIndexMap: {},
-        // }
+        const cmap: any = {
+            version: getUInt16(),
+            numTables: getUInt16(),
+            encodingRecords: [],
+            glyphIndexMap: {},
+        }
 
-        // if (cmap.version !== 0) {
-        //     throw new Error(`cmap version should be 0 but is ${cmap.version}`)
-        // }
+        if (cmap.version !== 0) {
+            throw new Error(`cmap version should be 0 but is ${cmap.version}`)
+        }
 
-        // for (let i = 0; i < cmap.numTables; i++) {
-        //     cmap.encodingRecords.push({
-        //         platformID: getUInt16(),
-        //         encodingID: getUInt16(),
-        //         offset: getUInt32(),
-        //     })
-        // }
+        for (let i = 0; i < cmap.numTables; i++) {
+            cmap.encodingRecords.push({
+                platformID: getUInt16(),
+                encodingID: getUInt16(),
+                offset: getUInt32(),
+            })
+        }
 
-        // let selectedOffset = -1
+        let selectedOffset = -1
 
-        // for (let i = 0; i < cmap.numTables; i++) {
-        //     const { platformID, encodingID, offset } = cmap.encodingRecords[i]
-        //     const isWindowsPlatform = platformID === 3 && (encodingID === 0 || encodingID === 1 || encodingID === 10)
+        for (let i = 0; i < cmap.numTables; i++) {
+            const { platformID, encodingID, offset } = cmap.encodingRecords[i]
+            const isWindowsPlatform = platformID === 3 && (encodingID === 0 || encodingID === 1 || encodingID === 10)
 
-        //     const isUnicodePlatform = platformID === 0 && (encodingID === 0 || encodingID === 1 || encodingID === 2 || encodingID === 3 || encodingID === 4)
+            const isUnicodePlatform = platformID === 0 && (encodingID === 0 || encodingID === 1 || encodingID === 2 || encodingID === 3 || encodingID === 4)
 
-        //     if (isWindowsPlatform || isUnicodePlatform) {
-        //         selectedOffset = offset
+            if (isWindowsPlatform || isUnicodePlatform) {
+                selectedOffset = offset
 
-        //         break
-        //     }
-        // }
+                break
+            }
+        }
 
-        // if (selectedOffset === -1) {
-        //     throw new Error(
-        //         "The font doesn't contain any recognized platform and encoding."
-        //     )
-        // }
+        if (selectedOffset === -1) {
+            throw new Error(
+                "The font doesn't contain any recognized platform and encoding."
+            )
+        }
         
-        // const format = getUInt16()
+        const format = getUInt16()
 
-        // if (format !== 4) {
-        //     throw new Error(`Unsupported format: ${format}. Required: 4.`)
-        // }
+        if (format !== 4) {
+            throw new Error(`Unsupported format: ${format}. Required: 4.`)
+        }
 
-        // const format4: any = {
-        //     format: 4,
-        //     length: getUInt16(),
-        //     language: getUInt16(),
-        //     segCountX2: getUInt16(),
-        //     searchRange: getUInt16(),
-        //     entrySelector: getUInt16(),
-        //     rangeShift: getUInt16(),
-        //     endCode: [],
-        //     startCode: [],
-        //     idDelta: [],
-        //     idRangeOffset: [],
-        //     glyphIndexMap: {},
-        // }
+        const format4: any = {
+            format: 4,
+            length: getUInt16(),
+            language: getUInt16(),
+            segCountX2: getUInt16(),
+            searchRange: getUInt16(),
+            entrySelector: getUInt16(),
+            rangeShift: getUInt16(),
+            endCode: [],
+            startCode: [],
+            idDelta: [],
+            idRangeOffset: [],
+            glyphIndexMap: {},
+        }
 
-        // const segCount = format4.segCountX2 >> 1
+        const segCount = format4.segCountX2 >> 1
 
-        // for (let i = 0; i < segCount; i++) {
-        //     format4.endCode.push(getUInt16())
-        // }
+        for (let i = 0; i < segCount; i++) {
+            format4.endCode.push(getUInt16())
+        }
 
-        // getUInt16()
+        getUInt16()
 
-        // for (let i = 0; i < segCount; i++) {
-        //     format4.startCode.push(getUInt16())
-        // }
+        for (let i = 0; i < segCount; i++) {
+            format4.startCode.push(getUInt16())
+        }
 
-        // for (let i = 0; i < segCount; i++) {
-        //     format4.idDelta.push(getInt16())
-        // }
+        for (let i = 0; i < segCount; i++) {
+            format4.idDelta.push(getInt16())
+        }
 
-        // const idRangeOffsetsStart = pointer
+        const idRangeOffsetsStart = pointer
 
-        // for (let i = 0; i < segCount; i++) {
-        //     format4.idRangeOffset.push(getUInt16())
-        // }
+        for (let i = 0; i < segCount; i++) {
+            format4.idRangeOffset.push(getUInt16())
+        }
 
-        // for (let i = 0; i < segCount - 1; i++) {
-        //     let glyphIndex = 0
-        //     const endCode = format4.endCode[i]
-        //     const startCode = format4.startCode[i]
-        //     const idDelta = format4.idDelta[i]
-        //     const idRangeOffset = format4.idRangeOffset[i]
+        for (let i = 0; i < segCount - 1; i++) {
+            let glyphIndex = 0
+            const endCode = format4.endCode[i]
+            const startCode = format4.startCode[i]
+            const idDelta = format4.idDelta[i]
+            const idRangeOffset = format4.idRangeOffset[i]
+
+            for (let c = startCode; c < endCode; c++) {
+                if (idRangeOffset !== 0) {
+                    const startCodeOffset = (c - startCode) * 2
+                    const currentRangeOffset = i * 2
+
+                    let glyphIndexOffset = idRangeOffsetsStart + currentRangeOffset + idRangeOffset + startCodeOffset
+
+                    pointer = glyphIndexOffset
+
+                    glyphIndex = getUInt16()
+                    
+                    if (glyphIndex !== 0) {
+                        glyphIndex = (glyphIndex + idDelta) & 0xffff
+                    }
+                } else {
+                    glyphIndex = (c + idDelta) & 0xffff
+                }
+                
+                format4.glyphIndexMap[c] = glyphIndex
+            }
+        }
+
+        this.format = format4
     }
 
-    public getGlyph(index: number): Glyph | null {
+    public getGlyph(character: string): Glyph | null {
         if(!this.glyf) return null
+
+        const characterCode = character.charCodeAt(0)
+
+        let segmentIndex = -1
+        for(let i = 0; i < this.format.endCode.length; i++) {
+            if(characterCode < this.format.startCode[i]) continue
+            if(characterCode > this.format.endCode[i]) continue
+
+            segmentIndex = i
+        }
+
+        if(segmentIndex === -1) return this.glyf[0] ?? null
+
+        const idRangeOffset = this.format.idRangeOffset[segmentIndex]
+        const idDelta = this.format.idDelta[segmentIndex]
+
+        if (idRangeOffset === 0) {
+            return this.glyf[(characterCode + idDelta) & 0xffff] ?? null
+        }
+
+        // const currentRangeOffsetAddress = 
+        // const glyphIndexAddress = idRangeOffset + (segmentIndex * 2) + idRangeOffset + (characterCode - this.format.startCode[segmentIndex]) * 2
         
-        return this.glyf[index] ?? null
+        
+        return this.glyf[0] ?? null
     }
 }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
-import { player, Rect, Vector2, ease, Ellipse, hex, Spline, Triangle, Font, Letter } from '@outercloud/animoo'
+import { player, Rect, Vector2, ease, Ellipse, hex, Spline, Triangle, Font, Letter, seconds } from '@outercloud/animoo'
 import JetBrainsMono from './assets/JetBrainsMono-Regular.ttf'
+import DroidSerif from './assets/droid-serif.regular.ttf'
 
 const canvas = useTemplateRef('canvas')
 
@@ -9,10 +10,29 @@ onMounted(async () => {
     const jetBrainsFont = new Font(JetBrainsMono)
     await jetBrainsFont.load()
 
+    const droidSerifFont = new Font(DroidSerif)
+    await droidSerifFont.load()
+
 	const animation = await player(canvas.value!, function* ({ camera, add }: any) {
         const letter = add(new Letter({
-            font: jetBrainsFont
+            font: droidSerifFont,
+            size: 100,
+            character: 'a'
         }))
+
+        const ellipse = add(new Ellipse({
+            position: new Vector2(0, 0),
+            size: new Vector2(10, 10),
+            color: hex('#FF0000')
+        }))
+
+        // for(const char of 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!?.') {
+        //     letter.character.value = char
+
+        //     ellipse.position.value = new Vector2(200, 0)
+        //     yield ellipse.position.to(new Vector2(200, 200), 2, ease)
+        //     yield* seconds(2)
+        // }
 
         // function* cameraAnimations() {
         //     yield camera.rotation.to(2 * Math.PI, 4)
