@@ -201,11 +201,14 @@ export class Letter implements RenderingElement {
 
         if(!font) throw new Error('Tried to render Letter with no font!')
 
+        // const glyph = font.getGlyph(0)
+        // const glyph = font.getGlyph(1)
         const glyph = font.getGlyph(26)
 
         if(!glyph) throw new Error('Failed to load glyphs!')
 
         let vertices: number[] = []
+        let holes: number[] = []
 
         let contourStart = 0
         for(const contourEnd of glyph.endPtsOfContours) {
@@ -213,41 +216,44 @@ export class Letter implements RenderingElement {
 
             const firstPoint = glyph.points[contourStart]
 
+            let area = 0
+            const firstVertex = vertices.length / 2
+
             for(let pointIndex = contourStart; pointIndex <= contourEnd + 1; pointIndex++) {
                 const point = pointIndex > contourEnd ? firstPoint : glyph.points[pointIndex]
 
                 if(!point.onCurve) continue
 
+                vertices = vertices.concat([ point.x, point.y ])
+
                 if(lastPoint !== null) {
                     const start = lastPoint
                     const end = point
-                    let vector = vec2.fromValues(end.x - start.x, end.y - start.y)
-                    const vectorLength = Math.sqrt(vector[0] * vector[0] + vector[1] * vector[1])
-                    vector = vec2.fromValues(vector[0] / vectorLength, vector[1] / vectorLength)
-                    const tangent = vec2.fromValues(-vector[1], vector[0])
                     
-                    console.log('Line', start, end, vector, tangent)
+                    console.log('Line', start, end)
 
-                    const width = 4
-
-                    vertices = vertices.concat([
-                        start.x + tangent[0] * width, start.y + tangent[1] * width,
-                        start.x - tangent[0] * width, start.y - tangent[1] * width,
-                        end.x - tangent[0] * width, end.y - tangent[1] * width,
-
-                        start.x + tangent[0] * width, start.y + tangent[1] * width,
-                        end.x + tangent[0] * width, end.y + tangent[1] * width,
-                        end.x - tangent[0] * width, end.y - tangent[1] * width,
-                    ])
+                    area += 1 / 2 * (start.x * end.y - end.x * start.y)
                 }
 
                 lastPoint = point
             }
 
+            console.log('Area', area)
+
+            if(area > 0) {
+                holes.push(firstVertex)
+            }
+
             contourStart = contourEnd + 1
         }
 
-        return vertices
+        console.log('Vertices', vertices, holes)
+
+        const triangles = earcut(vertices, holes)
+
+        console.log('Triangles', triangles)
+
+        return triangles.flatMap(index => [vertices[index * 2], vertices[index * 2 + 1]])
     }
 
     public requestInstanceBufferSize(): number {
@@ -263,8 +269,6 @@ export class Letter implements RenderingElement {
         const color = this.color.value
 
         const vertices = this.buildMesh(device, passEncoder, instanceBuffer, instancePointer)
-
-        console.log(vertices)
 
         const vertexData = new Float32Array(vertices)
 
