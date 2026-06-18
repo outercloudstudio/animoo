@@ -48,26 +48,31 @@ export class Letter implements RenderingElement {
         @group(0) @binding(0) var<uniform> camera: Camera;
 
         struct VertexInput {
-            @location(0) uv: vec2f,
+            @location(0) vertex_position: vec2f,
+            @location(1) uv: vec2f,
+            @location(2) mode: f32,
 
-            @location(1) position: vec2f,
-            @location(2) size: f32,
-            @location(3) rotation: f32,
-            @location(4) color: vec4f,
+            @location(3) position: vec2f,
+            @location(4) size: f32,
+            @location(5) rotation: f32,
+            @location(6) color: vec4f,
         }
 
         struct VertexOut {
             @builtin(position) position : vec4f,
+
             @location(0) color : vec4f,
-            @location(1) uv : vec2f,
-            @location(2) size : f32,
+            @location(1) vertex_position : vec2f,
+            @location(2) uv : vec2f,
+            @location(3) size : f32,
+            @location(4) mode : f32,
         }
 
         @vertex
         fn vertex_main(input: VertexInput) -> VertexOut {
             var output : VertexOut;
 
-            // let local_position = input.uv * input.size;
+            // let local_position = input.vertex_position * input.size;
             // let c = cos(input.rotation);
             // let s = sin(input.rotation);
 
@@ -86,18 +91,32 @@ export class Letter implements RenderingElement {
             // );
             // output.position = vec4f(rotated_view_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0 / camera.scale);
 
-            let local_position = input.uv;
-            output.position = vec4f(local_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 4.0 / camera.scale);
+            let local_position = input.vertex_position;
+            output.position = vec4f(local_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.5 / camera.scale);
 
             output.color = input.color;
+            output.vertex_position = input.vertex_position;
             output.uv = input.uv;
             output.size = input.size;
+            output.mode = input.mode;
 
             return output;
         }
 
         @fragment
         fn fragment_main(input: VertexOut) -> @location(0) vec4f {
+            if(input.mode == 1.0) {
+                if(input.uv.x * input.uv.x > input.uv.y) {
+                    discard;
+                }
+            }
+
+            if(input.mode == 2.0) {
+                if(input.uv.x * input.uv.x < input.uv.y) {
+                    discard;
+                }
+            }
+
             return input.color;
         }
         `
@@ -119,29 +138,39 @@ export class Letter implements RenderingElement {
                         offset: 0,
                         format: "float32x2",
                     },
+                    {
+                        shaderLocation: 1,
+                        offset: 8,
+                        format: "float32x2",
+                    },
+                    {
+                        shaderLocation: 2,
+                        offset: 16,
+                        format: "float32",
+                    },
                 ],
-                arrayStride: 8,
+                arrayStride: 20,
                 stepMode: "vertex",
             },
             {
                 attributes: [
                     {
-                        shaderLocation: 4,
+                        shaderLocation: 6,
                         offset: 0,
                         format: "float32x4",
                     },
                     {
-                        shaderLocation: 1,
+                        shaderLocation: 3,
                         offset: 16,
                         format: "float32x2",
                     },
                     {
-                        shaderLocation: 2,
+                        shaderLocation: 4,
                         offset: 16 + 8,
                         format: "float32",
                     },
                     {
-                        shaderLocation: 3,
+                        shaderLocation: 5,
                         offset: 16 + 8 + 4,
                         format: "float32",
                     },
@@ -258,7 +287,7 @@ export class Letter implements RenderingElement {
                         if(lastPoint) {
                             contour.lines.push({
                                 start: lastPoint,
-                                end: point,
+                                end: midPoint,
                                 control: lastControl
                             })
                         }
@@ -282,6 +311,9 @@ export class Letter implements RenderingElement {
         let vertices: number[] = []
         let holes: number[] = []
 
+        let outsideCurveVertexData: number[] = []
+        let insideCurveVertexData: number[] = []
+
         for(const contour of contours) {
             if(contour.cutout) holes.push(vertices.length / 2)
 
@@ -293,6 +325,10 @@ export class Letter implements RenderingElement {
 
                     if(area > 0) {
                         vertices = vertices.concat([ line.control.x, line.control.y ])
+
+                        insideCurveVertexData = insideCurveVertexData.concat([ line.start.x, line.start.y, 0, 0, 2, line.control.x, line.control.y, 0.5, 0, 2, line.end.x, line.end.y, 1, 1, 2])
+                    } else {
+                        outsideCurveVertexData = outsideCurveVertexData.concat([ line.start.x, line.start.y, 0, 0, 1, line.control.x, line.control.y, 0.5, 0, 1, line.end.x, line.end.y, 1, 1, 1])
                     }
                 }
             }
@@ -307,7 +343,7 @@ export class Letter implements RenderingElement {
 
         console.log('Triangles', triangles)
 
-        return triangles.flatMap(index => [vertices[index * 2], vertices[index * 2 + 1]])
+        return triangles.flatMap(index => [vertices[index * 2], vertices[index * 2 + 1], 0, 0, 0]).concat(outsideCurveVertexData).concat(insideCurveVertexData)
     }
 
     public requestInstanceBufferSize(): number {
@@ -345,7 +381,7 @@ export class Letter implements RenderingElement {
         passEncoder.setBindGroup(0, Letter.cameraBindGroup)
         passEncoder.setVertexBuffer(0, Letter.vertexBuffer)
         passEncoder.setVertexBuffer(1, instanceBuffer, instancePointer, instance.byteLength)
-        passEncoder.draw(vertices.length / 2, 1)
+        passEncoder.draw(vertices.length / 5, 1)
 
         return instance.byteLength
 	}
