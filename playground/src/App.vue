@@ -115,6 +115,9 @@ onMounted(async () => {
             } 
         }
 
+        const dataAValues = [1, 2, 3]
+        const dataBValues = [3, 2, 1]
+
         function* createDataA(index: number) {
             const data = add(new Ellipse({
                 position: new Vector2(-230 * 2 + 50, 230 - index * 230),
@@ -123,10 +126,23 @@ onMounted(async () => {
                 order: 50,
             }))
 
+            const letter = add(new Letter({
+                font: droidSerifFont,
+                character: dataAValues[index].toString(),
+                order: () => data.order.value + 1,
+                position: () => data.position.value,
+                origin: new Vector2(0.6, 0.5),
+                positionMode: 'box',
+                size: () => new Vector2(data.size.value.x * 0.5, data.size.value.y * 0.5),
+                color: () => new Vector4(1, 1, 1, data.color.value.w)
+            }))
+
             const size = data.size.value
             data.size.value = new Vector2(0, 0)
 
             yield* seconds(index * 1)
+
+            let resultIndex = 0
             
             for(let i = index; i < index + 4; i++) {
                 if(i === index) {
@@ -143,6 +159,19 @@ onMounted(async () => {
                         size: new Vector2(0, 0),
                         order: 30,
                     }))
+
+                    const letter = add(new Letter({
+                        font: droidSerifFont,
+                        character: (dataAValues[index] * dataBValues[resultIndex]).toString(),
+                        order: () => result.order.value + 1,
+                        position: () => result.position.value,
+                        origin: new Vector2(0.6, 0.5),
+                        positionMode: 'box',
+                        size: () => new Vector2(result.size.value.x * 0.5, result.size.value.y * 0.5),
+                        color: () => new Vector4(1, 1, 1, result.color.value.w)
+                    }))
+
+                    resultIndex++
 
                     function* animation() {
                         yield* seconds(0.2)
@@ -175,7 +204,18 @@ onMounted(async () => {
                 position: new Vector2(-230 + index * 230, 230 * 2 - 50),
                 color: hex('#29abf200'),
                 size: new Vector2(100, 100),
-                order: 50,
+                order: 60,
+            }))
+
+            const letter = add(new Letter({
+                font: droidSerifFont,
+                character: dataBValues[index].toString(),
+                order: () => data.order.value + 1,
+                position: () => data.position.value,
+                origin: new Vector2(0.6, 0.5),
+                positionMode: 'box',
+                size: () => new Vector2(data.size.value.x * 0.5, data.size.value.y * 0.5),
+                color: () => new Vector4(1, 1, 1, data.color.value.w)
             }))
 
             const size = data.size.value
