@@ -80,7 +80,7 @@ export class Player {
     }
 
     public update() {
-        const targetTick = Math.floor((Date.now() - this.start) / 1000 * 60)
+        const targetTick = Math.max(Math.floor((Date.now() - this.start) / 1000 * 60), 1)
 
         for(let i = this.lastTick; i < targetTick; i++) {
             this.tick()
