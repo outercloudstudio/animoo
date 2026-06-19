@@ -67,6 +67,8 @@ export class Renderer {
     render(elements: RenderingElement[], camera: Camera2DTransform, background: Vector4) {        
         if(!this.device || !this.instanceBuffer || !this.context || !this.cameraBuffer) throw new Error('Renderer is not setup!')
 
+        elements = elements.toSorted((a, b) => a.renderingOrder() - b.renderingOrder())
+
         let requestedInstanceBufferSize = 0
 
         for(const element of elements) {

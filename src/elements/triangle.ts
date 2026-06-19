@@ -254,4 +254,8 @@ export class Triangle implements RenderingElement {
 
         return instance.byteLength
 	}
+
+    public renderingOrder() {
+        return this.order.value
+    }
 }

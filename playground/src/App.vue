@@ -26,14 +26,15 @@ onMounted(async () => {
             yield* letter.size.to(new Vector2(100, 100), 1, easeOutBack)
         }
 
-        function renderText(text: string, position: Vector2, size: number, color: Vector4) {
+        function renderText(text: string, position: Vector2, size: number, color: Vector4, order?: number) {
             let positionX = 0
             for(const character of text) {
                 const letter = add(new Letter({
                     font: droidSerifFont,
                     size: new Vector2(size, size),
                     character: character,
-                    color
+                    color,
+                    order: order ?? 0
                 }))
 
                 positionX += letter.spacing().left
@@ -44,7 +45,21 @@ onMounted(async () => {
             }
         }
         
-        renderText('Systolic Array - Data Flow', new Vector2(-450, 500), 50, hex('#FFFFFF'))
+        renderText('Systolic Array - Data Flow', new Vector2(-450, 500), 50, hex('#FFFFFF'), 100)
+
+        renderText('Matrix A (→)', new Vector2(-300, -520), 30, hex('#a18ef4'), 100)
+        add(new Rect({
+            position: new Vector2(-340, -505),
+            size: new Vector2(40, 40),
+            color: hex('#a18ef4')
+        }))
+
+        renderText('Matrix B (↓)', new Vector2(120, -520), 30, hex('#29abf2'), 100)
+        add(new Rect({
+            position: new Vector2(120 -40, -505),
+            size: new Vector2(40, 40),
+            color: hex('#29abf2')
+        }))
 
         function* cameraAnimations() {
             yield camera.rotation.to(2 * Math.PI, 4)
@@ -55,7 +70,7 @@ onMounted(async () => {
             yield camera.scale.to(1, 2, ease)
         }
 
-        yield cameraAnimations()
+        // yield cameraAnimations()
         
         const color = hex('#1c1a31')
         const colorBorder = hex('#232235')
@@ -84,27 +99,45 @@ onMounted(async () => {
             }
         }
 
+        function* createExplosion(position: Vector2) {
+            for(let i = 0; i < 8; i++) {
+                const rotation = i * 2 * Math.PI / 8
+
+                const particle = add(new Rect({
+                    position: position,
+                    color: hex('#f0af28'),
+                    size: new Vector2(30, 10),
+                    rotation: rotation
+                }))
+
+                yield particle.position.to(particle.position.value.add(new Vector2(Math.cos(rotation) * 100, Math.sin(rotation) * 100)), 0.5, easeOut)
+                yield particle.size.to(new Vector2(0, 0), 0.5, easeIn)
+            } 
+        }
+
         function* createDataA(index: number) {
             const data = add(new Ellipse({
                 position: new Vector2(-280 * 2 - index * 280, 280 - index * 280),
                 color: hex('#a18ef4'),
-                size: new Vector2(150, 150),
+                size: new Vector2(100, 100),
+                order: 50,
             }))
 
             const size = data.size.value
             data.size.value = new Vector2(0, 0)
-            yield* data.size.to(size, 1, ease)
-
-            yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 1, ease)
-            yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 1, ease)
-            yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 1, ease)
-            yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 1, ease)
+            yield* data.size.to(size, 0.5, ease)
             
-            for(let i = 0; i < index; i++) {
-                yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 1, ease)
+            for(let i = 0; i < index + 4; i++) {
+                if(i > index && i < index + 4) {
+                    yield createExplosion(data.position.value)
+                }
+
+                yield* seconds(0.5)
+
+                yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 0.5, ease)
             }
 
-            yield* data.size.to(new Vector2(0, 0), 1, ease)
+            yield* data.size.to(new Vector2(0, 0), 0.5, ease)
         }
 
         yield createDataA(0)
@@ -115,23 +148,21 @@ onMounted(async () => {
             const data = add(new Ellipse({
                 position: new Vector2(-280 + index * 280, 280 * 2 + index * 280),
                 color: hex('#29abf2'),
-                size: new Vector2(150, 150),
+                size: new Vector2(100, 100),
+                order: 50,
             }))
 
             const size = data.size.value
             data.size.value = new Vector2(0, 0)
-            yield* data.size.to(size, 1, ease)
-
-            yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 1, ease)
-            yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 1, ease)
-            yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 1, ease)
-            yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 1, ease)
+            yield* data.size.to(size, 0.5, ease)
             
-            for(let i = 0; i < index; i++) {
-                yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 1, ease)
+            for(let i = 0; i < index + 4; i++) {
+                yield* seconds(0.5)
+
+                yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 0.5, ease)
             }
 
-            yield* data.size.to(new Vector2(0, 0), 1, ease)
+            yield* data.size.to(new Vector2(0, 0), 0.5, ease)
         }
 
         yield createDataB(0)

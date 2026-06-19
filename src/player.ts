@@ -106,7 +106,7 @@ export class Player {
 
         this.averageFps = Math.min(this.averageFps * 0.9 + (1 / delta) * 0.1, 999)
 
-        console.log(`FPS ${this.averageFps}`)
+        // console.log(`FPS ${this.averageFps}`)
 
         this.last = now
 

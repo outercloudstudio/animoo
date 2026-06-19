@@ -11,7 +11,7 @@ export function hex(hex: string): Vector4 {
     const g = parseInt(hex.substring(2, 4), 16)
     const b = parseInt(hex.substring(4, 6), 16)
     
-    const a = hex.length > 6 ? parseInt(hex.substring(6, 8), 16) : 1
+    const a = hex.length > 6 ? parseInt(hex.substring(6, 8), 16) / 255 : 1
 
 	return new Vector4(r / 255, g / 255, b / 255, a)
 }

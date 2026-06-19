@@ -448,4 +448,8 @@ export class Letter implements RenderingElement {
 
         return { width: glyph.width / font.unitsPerEm * size.x * 96 / 72, height: glyph.height / font.unitsPerEm * size.x * 96 / 72, right: glyph.rsb / font.unitsPerEm * size.x * 96 / 72, left: glyph.lsb / font.unitsPerEm * size.x * 96 / 72 }
     }
+
+    public renderingOrder() {
+        return this.order.value
+    }
 }
