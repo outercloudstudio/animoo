@@ -15,7 +15,7 @@ onMounted(async () => {
 
 	const animation = await player(canvas.value!, function* ({ camera, add }: any) {
         const letter = add(new Letter({
-            font: droidSerifFont,
+            font: jetBrainsFont,
             size: 100,
             character: 'a'
         }))

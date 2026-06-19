@@ -303,9 +303,7 @@ export class Letter implements RenderingElement {
             }
 
             contour.cutout = area > 0
-            
-            console.log(contour, area)
-            
+                        
             contours.push(contour)
 
             contourStart = contourEnd + 1
@@ -343,8 +341,6 @@ export class Letter implements RenderingElement {
         }
 
         const triangles = earcut(vertices, holes)
-
-        console.log(vertices, holes, triangles)
 
         return triangles.flatMap(index => [vertices[index * 2] * scaler, vertices[index * 2 + 1] * scaler, 0, 0, 0]).concat(outsideCurveVertexData).concat(insideCurveVertexData)
     }

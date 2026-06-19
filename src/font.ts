@@ -340,7 +340,7 @@ export class Font {
                     const startCodeOffset = (c - startCode) * 2
                     const currentRangeOffset = i * 2
 
-                    let glyphIndexOffset = idRangeOffsetsStart + currentRangeOffset + idRangeOffset + startCodeOffset
+                    const glyphIndexOffset = idRangeOffsetsStart + currentRangeOffset + idRangeOffset + startCodeOffset
 
                     pointer = glyphIndexOffset
 
@@ -365,27 +365,8 @@ export class Font {
 
         const characterCode = character.charCodeAt(0)
 
-        let segmentIndex = -1
-        for(let i = 0; i < this.format.endCode.length; i++) {
-            if(characterCode < this.format.startCode[i]) continue
-            if(characterCode > this.format.endCode[i]) continue
-
-            segmentIndex = i
-        }
-
-        if(segmentIndex === -1) return this.glyf[0] ?? null
-
-        const idRangeOffset = this.format.idRangeOffset[segmentIndex]
-        const idDelta = this.format.idDelta[segmentIndex]
-
-        if (idRangeOffset === 0) {
-            return this.glyf[(characterCode + idDelta) & 0xffff] ?? null
-        }
-
-        // const currentRangeOffsetAddress = 
-        // const glyphIndexAddress = idRangeOffset + (segmentIndex * 2) + idRangeOffset + (characterCode - this.format.startCode[segmentIndex]) * 2
+        const glyphIndex = this.format.glyphIndexMap[characterCode] ?? 0
         
-        
-        return this.glyf[0] ?? null
+        return this.glyf[glyphIndex] ?? null
     }
 }
