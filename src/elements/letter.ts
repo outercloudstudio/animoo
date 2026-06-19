@@ -3,7 +3,6 @@ import { Vector2, Vector4 } from "../vector.ts"
 import { RenderingElement } from "./element.ts";
 import { Font } from "../font.ts";
 
-import { vec2 } from 'gl-matrix'
 import earcut from 'earcut';
 
 type Line = { start: { x: number, y: number }, end: { x: number, y: number }, control?: { x: number, y: number } }
@@ -17,7 +16,9 @@ export class Letter implements RenderingElement {
     public font: Reactive<Font | null> = react(null)
     public character: Reactive<string> = react('a')
     public position: Reactive<Vector2> = react(new Vector2(0, 0))
-    public size: Reactive<number> = react(100)
+    public origin: Reactive<Vector2> = react(new Vector2(0, 0))
+    public positionMode: Reactive<'normal' | 'center'> = react('normal')
+    public size: Reactive<Vector2> = react(new Vector2(100, 100))
     public rotation: Reactive<number> = react(0)
     public color: Reactive<Vector4> = react(new Vector4(1, 1, 1, 1))
     public order: Reactive<number> = react(0)
@@ -26,7 +27,9 @@ export class Letter implements RenderingElement {
         font?: OptionallyReactable<Font>
         character?: OptionallyReactable<string>
         position?: OptionallyReactable<Vector2>
-        size?: OptionallyReactable<number>
+        origin?: OptionallyReactable<Vector2>
+        positionMode?: OptionallyReactable<'normal' | 'center'>
+        size?: OptionallyReactable<Vector2>
         rotation?: OptionallyReactable<number>
         color?: OptionallyReactable<Vector4>
         order?: OptionallyReactable<number>
@@ -53,51 +56,48 @@ export class Letter implements RenderingElement {
             @location(2) mode: f32,
 
             @location(3) position: vec2f,
-            @location(4) size: f32,
-            @location(5) rotation: f32,
-            @location(6) color: vec4f,
+            @location(4) origin: vec2f,
+            @location(5) positionMode: u32,
+            @location(6) size: vec2f,
+            @location(7) rotation: f32,
+            @location(8) color: vec4f,
+            @location(9) unitsPerEm: f32,
         }
 
         struct VertexOut {
             @builtin(position) position : vec4f,
 
             @location(0) color : vec4f,
-            @location(1) vertex_position : vec2f,
-            @location(2) uv : vec2f,
-            @location(3) size : f32,
-            @location(4) mode : f32,
+            @location(1) uv : vec2f,
+            @location(2) mode : f32,
         }
 
         @vertex
         fn vertex_main(input: VertexInput) -> VertexOut {
             var output : VertexOut;
 
-            // let local_position = input.vertex_position * input.size;
-            // let c = cos(input.rotation);
-            // let s = sin(input.rotation);
+            let local_position = input.vertex_position / input.unitsPerEm * 96.0 / 72.0 * input.size;
 
-            // let rotated_position = vec2f(
-            //     local_position.x * c - local_position.y * s,
-            //     local_position.x * s + local_position.y * c
-            // );
+            let c = cos(input.rotation);
+            let s = sin(input.rotation);
 
-            // let world_position = rotated_position + input.position - camera.position;
+            let rotated_position = vec2f(
+                local_position.x * c - local_position.y * s,
+                local_position.x * s + local_position.y * c
+            );
 
-            // let camera_c = cos(-camera.rotation);
-            // let camera_s = sin(-camera.rotation);
-            // let rotated_view_position = vec2f(
-            //     world_position.x * camera_c - world_position.y * camera_s,
-            //     world_position.x * camera_s + world_position.y * camera_c
-            // );
-            // output.position = vec4f(rotated_view_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0 / camera.scale);
+            let world_position = rotated_position + input.position - camera.position;
 
-            let local_position = input.vertex_position;
-            output.position = vec4f(local_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0 / camera.scale);
+            let camera_c = cos(-camera.rotation);
+            let camera_s = sin(-camera.rotation);
+            let rotated_view_position = vec2f(
+                world_position.x * camera_c - world_position.y * camera_s,
+                world_position.x * camera_s + world_position.y * camera_c
+            );
+            output.position = vec4f(rotated_view_position / vec2f(1920.0 / 2.0, 1200.0 / 2.0), 0.0, 1.0 / camera.scale);
 
             output.color = input.color;
-            output.vertex_position = input.vertex_position;
             output.uv = input.uv;
-            output.size = input.size;
             output.mode = input.mode;
 
             return output;
@@ -155,7 +155,7 @@ export class Letter implements RenderingElement {
             {
                 attributes: [
                     {
-                        shaderLocation: 6,
+                        shaderLocation: 8,
                         offset: 0,
                         format: "float32x4",
                     },
@@ -166,16 +166,31 @@ export class Letter implements RenderingElement {
                     },
                     {
                         shaderLocation: 4,
-                        offset: 16 + 8,
+                        offset: 24,
+                        format: "float32x2",
+                    },
+                    {
+                        shaderLocation: 6,
+                        offset: 32,
+                        format: "float32x2",
+                    },
+                    {
+                        shaderLocation: 7,
+                        offset: 40,
                         format: "float32",
                     },
                     {
                         shaderLocation: 5,
-                        offset: 16 + 8 + 4,
+                        offset: 44,
+                        format: "uint32",
+                    },
+                    {
+                        shaderLocation: 9,
+                        offset: 48,
                         format: "float32",
                     },
                 ],
-                arrayStride: 48,
+                arrayStride: 52,
                 stepMode: "instance",
             },
         ]
@@ -230,11 +245,8 @@ export class Letter implements RenderingElement {
     private buildMesh(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number[] {
         const font = this.font.value
         const character = this.character.value
-        const size = this.size.value
 
         if(!font) throw new Error('Tried to render Letter with no font!')
-
-        const scaler = 1 / font.unitsPerEm * 96 / 72 * size
 
         const glyph = font.getGlyph(character)
 
@@ -329,9 +341,9 @@ export class Letter implements RenderingElement {
                     if(area > 0) {
                         vertices = vertices.concat([ line.control.x, line.control.y ])
 
-                        insideCurveVertexData = insideCurveVertexData.concat([ line.start.x * scaler, line.start.y * scaler, 0, 0, 2, line.control.x * scaler, line.control.y * scaler, 0.5, 0, 2, line.end.x * scaler, line.end.y * scaler, 1, 1, 2])
+                        insideCurveVertexData = insideCurveVertexData.concat([ line.start.x, line.start.y, 0, 0, 2, line.control.x, line.control.y, 0.5, 0, 2, line.end.x, line.end.y, 1, 1, 2])
                     } else {
-                        outsideCurveVertexData = outsideCurveVertexData.concat([ line.start.x * scaler, line.start.y * scaler, 0, 0, 1, line.control.x * scaler, line.control.y * scaler, 0.5, 0, 1, line.end.x * scaler, line.end.y * scaler, 1, 1, 1])
+                        outsideCurveVertexData = outsideCurveVertexData.concat([ line.start.x, line.start.y, 0, 0, 1, line.control.x, line.control.y, 0.5, 0, 1, line.end.x, line.end.y, 1, 1, 1])
                     }
                 }
             }
@@ -342,7 +354,7 @@ export class Letter implements RenderingElement {
 
         const triangles = earcut(vertices, holes)
 
-        return triangles.flatMap(index => [vertices[index * 2] * scaler, vertices[index * 2 + 1] * scaler, 0, 0, 0]).concat(outsideCurveVertexData).concat(insideCurveVertexData)
+        return triangles.flatMap(index => [vertices[index * 2], vertices[index * 2 + 1], 0, 0, 0]).concat(outsideCurveVertexData).concat(insideCurveVertexData)
     }
 
     public requestInstanceBufferSize(): number {
@@ -352,7 +364,13 @@ export class Letter implements RenderingElement {
     public render(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
         if(!Letter.renderPipeline || !Letter.cameraBindGroup || !Letter.vertexBuffer) throw new Error('Letter is not setup!')
         
+        const font = this.font.value
+
+        if(!font) throw new Error('Tried to render Letter with no font!')
+
         const position = this.position.value
+        const positionMode = this.positionMode.value
+        const origin = this.origin.value
         const size = this.size.value
         const rotation = this.rotation.value
         const color = this.color.value
@@ -372,7 +390,9 @@ export class Letter implements RenderingElement {
 
         device.queue.writeBuffer(Letter.vertexBuffer, 0, vertexData, 0, vertexData.length)
 
-        const instance = new Float32Array([ color.x, color.y, color.z, color.w, position.x, position.y, size, rotation ])
+        console.log(font.unitsPerEm)
+
+        const instance = new Float32Array([ color.x, color.y, color.z, color.w, position.x, position.y, origin.x, origin.y, size.x, size.y, rotation, positionMode ? 1 : 0, font.unitsPerEm ])
 
         device.queue.writeBuffer(instanceBuffer, instancePointer, instance, 0, instance.length)
 
