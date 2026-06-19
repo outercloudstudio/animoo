@@ -14,6 +14,8 @@ export class Player {
     private renderer: Renderer
     private background: Vector4 = new Vector4(0, 0, 0, 1)
     
+    private start = Date.now()
+    private lastTick = 0
     private last = Date.now()
     private averageFps = 0
 
@@ -29,6 +31,8 @@ export class Player {
     }
 
 	public play() {
+        this.start = Date.now()
+        this.lastTick = 0
         this.camera = new Camera2D()
 		this.contexts = [
             this.generator({
@@ -64,8 +68,8 @@ export class Player {
 
         return unfinishedContexts
     }
-
-    public update() {
+    
+    public tick() {
         let unfinishedContexts: any[] = []
 
         for(const context of this.contexts) {
@@ -73,12 +77,24 @@ export class Player {
         }
 
         this.contexts = unfinishedContexts
+    }
+
+    public update() {
+        const targetTick = Math.floor((Date.now() - this.start) / 1000 * 60)
+
+        for(let i = this.lastTick; i < targetTick; i++) {
+            this.tick()
+        }
+
+        this.lastTick = targetTick
 
         this.render()
 
         if(this.contexts.length === 0) {
             this.elements = []
 
+            this.start = Date.now()
+            this.lastTick = 0
             this.camera = new Camera2D()
             this.contexts = [
                 this.generator({
