@@ -23,6 +23,10 @@ export class Letter implements RenderingElement {
     public color: Reactive<Vector4> = react(new Vector4(1, 1, 1, 1))
     public order: Reactive<number> = react(0)
 
+    private cachedFont: Font | null = null
+    private cachedCharacter: string | null = null
+    private cachedVertexData: number[] | null = null
+
     public constructor(options: {
         font?: OptionallyReactable<Font>
         character?: OptionallyReactable<string>
@@ -246,6 +250,8 @@ export class Letter implements RenderingElement {
         const font = this.font.value
         const character = this.character.value
 
+        if(font === this.cachedFont && character === this.cachedCharacter && this.cachedVertexData) return this.cachedVertexData
+
         if(!font) throw new Error('Tried to render Letter with no font!')
 
         const glyph = font.getGlyph(character)
@@ -354,7 +360,13 @@ export class Letter implements RenderingElement {
 
         const triangles = earcut(vertices, holes)
 
-        return triangles.flatMap(index => [vertices[index * 2], vertices[index * 2 + 1], 0, 0, 0]).concat(outsideCurveVertexData).concat(insideCurveVertexData)
+        const vertexData = triangles.flatMap(index => [vertices[index * 2], vertices[index * 2 + 1], 0, 0, 0]).concat(outsideCurveVertexData).concat(insideCurveVertexData)
+
+        this.cachedFont = font
+        this.cachedCharacter = character
+        this.cachedVertexData = vertexData
+        
+        return vertexData
     }
 
     public requestInstanceBufferSize(): number {
@@ -389,8 +401,6 @@ export class Letter implements RenderingElement {
         }
 
         device.queue.writeBuffer(Letter.vertexBuffer, 0, vertexData, 0, vertexData.length)
-
-        console.log(font.unitsPerEm)
 
         const instance = new Float32Array([ color.x, color.y, color.z, color.w, position.x, position.y, origin.x, origin.y, size.x, size.y, rotation, positionMode ? 1 : 0, font.unitsPerEm ])
 
