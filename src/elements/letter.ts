@@ -1,7 +1,7 @@
 import { OptionallyReactable, react, Reactive } from "../react.ts"
 import { Vector2, Vector4 } from "../vector.ts"
 import { RenderingElement } from "./element.ts";
-import { Font } from "../font.ts";
+import { Font, Glyph } from "../font.ts";
 
 import earcut from 'earcut';
 
@@ -11,18 +11,18 @@ type Contour = { cutout: boolean, lines: Line[] }
 export class Letter implements RenderingElement {
     private static renderPipeline: GPURenderPipeline | null = null
     private static cameraBindGroup: GPUBindGroup | null = null
-    private static vertexBuffer: GPUBuffer | null = null
-
+    
     public font: Reactive<Font | null> = react(null)
     public character: Reactive<string> = react('a')
     public position: Reactive<Vector2> = react(new Vector2(0, 0))
     public origin: Reactive<Vector2> = react(new Vector2(0, 0))
-    public positionMode: Reactive<'normal' | 'center'> = react('normal')
+    public positionMode: Reactive<'normal' | 'box'> = react('normal')
     public size: Reactive<Vector2> = react(new Vector2(100, 100))
     public rotation: Reactive<number> = react(0)
     public color: Reactive<Vector4> = react(new Vector4(1, 1, 1, 1))
     public order: Reactive<number> = react(0)
-
+    
+    private vertexBuffer: GPUBuffer | null = null
     private cachedFont: Font | null = null
     private cachedCharacter: string | null = null
     private cachedVertexData: number[] | null = null
@@ -32,7 +32,7 @@ export class Letter implements RenderingElement {
         character?: OptionallyReactable<string>
         position?: OptionallyReactable<Vector2>
         origin?: OptionallyReactable<Vector2>
-        positionMode?: OptionallyReactable<'normal' | 'center'>
+        positionMode?: OptionallyReactable<'normal' | 'box'>
         size?: OptionallyReactable<Vector2>
         rotation?: OptionallyReactable<number>
         color?: OptionallyReactable<Vector4>
@@ -66,6 +66,8 @@ export class Letter implements RenderingElement {
             @location(7) rotation: f32,
             @location(8) color: vec4f,
             @location(9) unitsPerEm: f32,
+            @location(10) xBounds: vec2f,
+            @location(11) yBounds: vec2f,
         }
 
         struct VertexOut {
@@ -80,7 +82,13 @@ export class Letter implements RenderingElement {
         fn vertex_main(input: VertexInput) -> VertexOut {
             var output : VertexOut;
 
-            let local_position = input.vertex_position / input.unitsPerEm * 96.0 / 72.0 * input.size;
+            var offset = -input.origin * input.unitsPerEm;
+
+            if(input.positionMode == 1) {
+                offset = input.origin * vec2f(input.xBounds.x - input.xBounds.y, input.yBounds.x - input.yBounds.y);
+            }
+
+            let local_position = (input.vertex_position + offset) / input.unitsPerEm * 96.0 / 72.0 * input.size;
 
             let c = cos(input.rotation);
             let s = sin(input.rotation);
@@ -129,11 +137,6 @@ export class Letter implements RenderingElement {
             code: shaders,
         })
 
-        const vertexBuffer = device.createBuffer({
-            size: 256,
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-        })
-
         const vertexBuffers: GPUVertexBufferLayout[] = [
             {
                 attributes: [
@@ -179,22 +182,32 @@ export class Letter implements RenderingElement {
                         format: "float32x2",
                     },
                     {
-                        shaderLocation: 7,
+                        shaderLocation: 10,
                         offset: 40,
+                        format: "float32x2",
+                    },
+                    {
+                        shaderLocation: 11,
+                        offset: 48,
+                        format: "float32x2",
+                    },
+                    {
+                        shaderLocation: 7,
+                        offset: 56,
                         format: "float32",
                     },
                     {
                         shaderLocation: 5,
-                        offset: 44,
+                        offset: 60,
                         format: "uint32",
                     },
                     {
                         shaderLocation: 9,
-                        offset: 48,
+                        offset: 64,
                         format: "float32",
                     },
                 ],
-                arrayStride: 52,
+                arrayStride: 68,
                 stepMode: "instance",
             },
         ]
@@ -242,7 +255,6 @@ export class Letter implements RenderingElement {
         })
 
         this.renderPipeline = renderPipeline
-        this.vertexBuffer = vertexBuffer
         this.cameraBindGroup = cameraBindGroup
     }
 
@@ -370,15 +382,22 @@ export class Letter implements RenderingElement {
     }
 
     public requestInstanceBufferSize(): number {
-        return 2 + 1 + 1 + 4
+        return 68
     }
 
     public render(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
-        if(!Letter.renderPipeline || !Letter.cameraBindGroup || !Letter.vertexBuffer) throw new Error('Letter is not setup!')
+        if(!Letter.renderPipeline || !Letter.cameraBindGroup) throw new Error('Letter is not setup!')
+
+        console.log('Render', this.character.value)
         
         const font = this.font.value
+        const character = this.character.value
 
         if(!font) throw new Error('Tried to render Letter with no font!')
+
+        const glyph = font.getGlyph(character)
+
+        if(!glyph) throw new Error('Failed to load glyphs!')
 
         const position = this.position.value
         const positionMode = this.positionMode.value
@@ -391,27 +410,44 @@ export class Letter implements RenderingElement {
 
         const vertexData = new Float32Array(vertices)
 
-        if(vertexData.byteLength > Letter.vertexBuffer.size) {
-            Letter.vertexBuffer.destroy()
+        if(!this.vertexBuffer || vertexData.byteLength > this.vertexBuffer.size) {
+            if(this.vertexBuffer) this.vertexBuffer.destroy()
 
-            Letter.vertexBuffer = device.createBuffer({
+            this.vertexBuffer = device.createBuffer({
                 size: vertexData.byteLength,
                 usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
             })
         }
 
-        device.queue.writeBuffer(Letter.vertexBuffer, 0, vertexData, 0, vertexData.length)
+        device.queue.writeBuffer(this.vertexBuffer, 0, vertexData, 0, vertexData.length)
 
-        const instance = new Float32Array([ color.x, color.y, color.z, color.w, position.x, position.y, origin.x, origin.y, size.x, size.y, rotation, positionMode ? 1 : 0, font.unitsPerEm ])
+        const instance = new Float32Array([ color.x, color.y, color.z, color.w, position.x, position.y, origin.x, origin.y, size.x, size.y, glyph.xMin, glyph.xMax, glyph.yMin, glyph.yMax, rotation, 0, font.unitsPerEm ])
+        const instance2 = new Uint32Array([ positionMode === 'box' ? 1 : 0 ])
 
         device.queue.writeBuffer(instanceBuffer, instancePointer, instance, 0, instance.length)
+        device.queue.writeBuffer(instanceBuffer, instancePointer + 15 * 4, instance2, 0, instance2.length)
 
         passEncoder.setPipeline(Letter.renderPipeline)
         passEncoder.setBindGroup(0, Letter.cameraBindGroup)
-        passEncoder.setVertexBuffer(0, Letter.vertexBuffer)
+        passEncoder.setVertexBuffer(0, this.vertexBuffer)
         passEncoder.setVertexBuffer(1, instanceBuffer, instancePointer, instance.byteLength)
         passEncoder.draw(vertices.length / 5, 1)
 
         return instance.byteLength
 	}
+
+    public spacing(): { width: number, height: number, right: number, left: number } {
+        const font = this.font.value
+        const character = this.character.value
+
+        if(!font) throw new Error('Tried to render Letter with no font!')
+
+        const glyph = font.getGlyph(character)
+
+        if(!glyph) throw new Error('Failed to load glyphs!')
+
+        const size = this.size.value
+
+        return { width: glyph.width / font.unitsPerEm * size.x * 96 / 72, height: glyph.height / font.unitsPerEm * size.x * 96 / 72, right: glyph.rsb / font.unitsPerEm * size.x * 96 / 72, left: glyph.lsb / font.unitsPerEm * size.x * 96 / 72 }
+    }
 }

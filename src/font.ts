@@ -1,4 +1,18 @@
-export type Glyph = { numberOfContours: number, xMin: number, yMin: number, xMax: number, yMax: number, endPtsOfContours: number[], points: { x: number, y: number, onCurve: boolean }[] }
+export type Glyph = { 
+    numberOfContours: number,
+    xMin: number,
+    yMin: number,
+    xMax: number,
+    yMax: number,
+    endPtsOfContours: number[],
+    points: { x: number, y: number, onCurve: boolean }[],
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    lsb: number,
+    rsb: number
+}
 
 export class Font {
     public url: string
@@ -131,6 +145,51 @@ export class Font {
             maxComponentDepth: getUInt16(),
         }
 
+        pointer = tables['hhea'].offset
+
+        const hhea = {
+            version: getFixed(),
+            ascent: getInt16(),
+            descent: getInt16(),
+            lineGap: getInt16(),
+            advanceWidthMax: getUInt16(),
+            minLeftSideBearing: getInt16(),
+            minRightSideBearing: getInt16(),
+            xMaxExtent: getInt16(),
+            caretSlopeRise: getInt16(),
+            caretSlopeRun: getInt16(),
+            caretOffset: getInt16(),
+            metricDataFormat: 0,
+            numOfLongHorMetrics: 0
+        }
+
+        skip(8)
+
+        hhea.metricDataFormat = getInt16()
+        hhea.numOfLongHorMetrics = getUInt16()
+
+        pointer = tables['hmtx'].offset
+
+        const hMetrics: any[] = []
+
+        for (let i = 0; i < hhea.numOfLongHorMetrics; i++) {
+            hMetrics.push({
+                advanceWidth: getUInt16(),
+                leftSideBearing: getInt16(),
+            })
+        }
+
+        const leftSideBearing: number[] = []
+
+        for (let i = 0; i < maximumProfile.numberOfGlyphs - hhea.numOfLongHorMetrics; i++) {
+            leftSideBearing.push(getInt16())
+        }
+
+        const hmtx = {
+            hMetrics,
+            leftSideBearing,
+        }
+
         pointer = tables['loca'].offset
 
         const loca: number[] = []
@@ -151,6 +210,32 @@ export class Font {
         for (let i = 0; i < loca.length - 1; i++) {
             const locaOffset = loca[i] * (header.indexToLocFormat === 0 ? 2 : 1)
 
+            const nextLocaOffset = loca[i + 1] * (header.indexToLocFormat === 0 ? 2 : 1)
+            const glyphLength = nextLocaOffset - locaOffset
+
+            const advanceWidth = hmtx.hMetrics[Math.min(i, hmtx.hMetrics.length - 1)].advanceWidth
+            const leftSideBearing = i < hmtx.hMetrics.length ? hmtx.hMetrics[i].leftSideBearing : hmtx.leftSideBearing[i - hmtx.hMetrics.length]
+
+            if (glyphLength === 0) {
+                glyf.push({
+                    numberOfContours: 0,
+                    xMin: 0,
+                    yMin: 0,
+                    xMax: 0,
+                    yMax: 0,
+                    endPtsOfContours: [],
+                    points: [],
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    lsb: leftSideBearing,
+                    rsb: advanceWidth - leftSideBearing,
+                })
+
+                continue
+            }
+
             pointer = tables['glyf'].offset + locaOffset
 
             const data: Glyph = {
@@ -160,8 +245,21 @@ export class Font {
                 xMax: getInt16(),
                 yMax: getInt16(),
                 endPtsOfContours: [],
-                points: []
+                points: [],
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                lsb: 0,
+                rsb: 0,
             }
+
+            data.x = data.xMin
+            data.y = data.yMin
+            data.width = data.xMax - data.xMin
+            data.height = data.yMax - data.yMin
+            data.lsb = leftSideBearing
+            data.rsb = advanceWidth - leftSideBearing - (data.xMax - data.xMin)
 
             for(let i = 0; i < data.numberOfContours; i++) {
                 data.endPtsOfContours.push(getUInt16())
@@ -366,7 +464,7 @@ export class Font {
         const characterCode = character.charCodeAt(0)
 
         const glyphIndex = this.format.glyphIndexMap[characterCode] ?? 0
-        
+
         return this.glyf[glyphIndex] ?? null
     }
 }

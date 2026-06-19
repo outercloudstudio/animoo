@@ -1,30 +1,53 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
-import { player, Rect, Vector2, ease, Ellipse, hex, Spline, Triangle, Font, Letter, seconds } from '@outercloud/animoo'
+import { player, Rect, Vector2, ease, Ellipse, hex, Spline, Triangle, Font, Letter, seconds, easeOut, easeOutBack, easeIn, react } from '@outercloud/animoo'
 import JetBrainsMono from './assets/JetBrainsMono-Regular.ttf'
 import DroidSerif from './assets/droid-serif.regular.ttf'
 
 const canvas = useTemplateRef('canvas')
 
 onMounted(async () => {
-    const jetBrainsFont = new Font(JetBrainsMono)
-    await jetBrainsFont.load()
+    // const jetBrainsFont = new Font(JetBrainsMono)
+    // await jetBrainsFont.load()
 
     const droidSerifFont = new Font(DroidSerif)
     await droidSerifFont.load()
 
 	const animation = await player(canvas.value!, function* ({ camera, add }: any) {
-        const letter = add(new Letter({
-            font: droidSerifFont,
-            size: new Vector2(100, 100),
-            character: 'a'
-        }))
+        const systolicArrayText = 'Systolic Array - Data Flow'
+        let systolicArrayLetters: Letter[] = []
 
-        const ellipse = add(new Ellipse({
-            position: new Vector2(0, 0),
-            size: new Vector2(10, 10),
-            color: hex('#FF0000')
-        }))
+        let systolicArrayPositionX = 0
+        for(const character of systolicArrayText) {
+            const letter = add(new Letter({
+                font: droidSerifFont,
+                size: new Vector2(100, 100),
+                character: character,
+            }))
+
+            systolicArrayPositionX += letter.spacing().left
+
+            letter.position.value = new Vector2(-850 + systolicArrayPositionX, 0)
+
+            systolicArrayLetters.push(letter)
+
+            systolicArrayPositionX += letter.spacing().width + letter.spacing().right
+        }
+
+        // letter.size.value = new Vector2(0, 0)
+        // letter.rotation.value = Math.PI / 8
+        // yield letter.rotation.to(0, 2, easeOutBack)
+        // yield* letter.size.to(new Vector2(100, 100), 2, easeOutBack)
+
+        // yield* seconds(2)
+
+        // yield* letter.size.to(new Vector2(0, 0), 2, easeIn)
+
+        // const ellipse = add(new Ellipse({
+        //     position: new Vector2(0, 0),
+        //     size: new Vector2(10, 10),
+        //     color: hex('#FF0000')
+        // }))
 
         // for(const char of 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!?.') {
         //     letter.character.value = char
