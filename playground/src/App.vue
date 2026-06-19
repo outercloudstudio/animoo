@@ -79,14 +79,14 @@ onMounted(async () => {
             const squareBackground = add(new Rect({
                 position: location,
                 color: colorBorder,
-                size: new Vector2(260, 260),
+                size: new Vector2(210, 210),
                 radius: 35
             }))
 
             const square = add(new Rect({
                 position: location,
                 color: color,
-                size: new Vector2(250, 250),
+                size: new Vector2(200, 200),
                 radius: 30
             }))
 
@@ -95,7 +95,7 @@ onMounted(async () => {
 
         for(let x = -1; x <= 1; x++) {
             for(let y = -1; y <= 1; y++) {
-                createSquare(new Vector2(x * 280, y * 280))
+                createSquare(new Vector2(x * 230, y * 230))
             }
         }
 
@@ -117,27 +117,53 @@ onMounted(async () => {
 
         function* createDataA(index: number) {
             const data = add(new Ellipse({
-                position: new Vector2(-280 * 2 - index * 280, 280 - index * 280),
-                color: hex('#a18ef4'),
+                position: new Vector2(-230 * 2 + 50, 230 - index * 230),
+                color: hex('#a18ef400'),
                 size: new Vector2(100, 100),
                 order: 50,
             }))
 
             const size = data.size.value
             data.size.value = new Vector2(0, 0)
-            yield* data.size.to(size, 0.5, ease)
+
+            yield* seconds(index * 1)
             
-            for(let i = 0; i < index + 4; i++) {
+            for(let i = index; i < index + 4; i++) {
+                if(i === index) {
+                    yield data.size.to(size, 0.5, ease)
+                    yield data.color.to(hex('#a18ef4'), 0.5, ease)
+                }
+
                 if(i > index && i < index + 4) {
                     yield createExplosion(data.position.value)
+
+                    const result = add(new Ellipse({
+                        position: data.position.value,
+                        color: hex('#f0af2800'),
+                        size: new Vector2(0, 0),
+                        order: 30,
+                    }))
+
+                    function* animation() {
+                        yield* seconds(0.2)
+                        yield result.color.to(hex('#f0af28'), 1, ease)
+                        yield result.size.to(new Vector2(100, 100), 1, ease)
+
+                        yield* seconds(6 - i)
+
+                        yield result.color.to(hex('#f0af2800'), 1, ease)
+                    }
+
+                    yield animation()
                 }
 
                 yield* seconds(0.5)
 
-                yield* data.position.to(data.position.value.add(new Vector2(280, 0)), 0.5, ease)
+                yield* data.position.to(data.position.value.add(new Vector2(230 + (i === index ? -50 : 0) + (i === index + 3 ? -50 : 0), 0)), 0.5, easeIn)
             }
-
-            yield* data.size.to(new Vector2(0, 0), 0.5, ease)
+            
+            yield data.color.to(hex('#a18ef400'), 0.5, easeIn)
+            yield* data.size.to(new Vector2(0, 0), 0.5, easeIn)
         }
 
         yield createDataA(0)
@@ -146,23 +172,30 @@ onMounted(async () => {
 
         function* createDataB(index: number) {
             const data = add(new Ellipse({
-                position: new Vector2(-280 + index * 280, 280 * 2 + index * 280),
-                color: hex('#29abf2'),
+                position: new Vector2(-230 + index * 230, 230 * 2 - 50),
+                color: hex('#29abf200'),
                 size: new Vector2(100, 100),
                 order: 50,
             }))
 
             const size = data.size.value
             data.size.value = new Vector2(0, 0)
-            yield* data.size.to(size, 0.5, ease)
+
+            yield* seconds(index * 1)
             
-            for(let i = 0; i < index + 4; i++) {
+            for(let i = index; i < index + 4; i++) {
+                if(i === index) {
+                    yield data.size.to(size, 0.5, ease)
+                    yield data.color.to(hex('#29abf2'), 0.5, ease)
+                }
+
                 yield* seconds(0.5)
 
-                yield* data.position.to(data.position.value.add(new Vector2(0, -280)), 0.5, ease)
+                yield* data.position.to(data.position.value.add(new Vector2(0, -230 + (i === index ? 50 : 0) + (i === index + 3 ? 50 : 0))), 0.5, easeIn)
             }
 
-            yield* data.size.to(new Vector2(0, 0), 0.5, ease)
+            yield data.color.to(hex('#29abf200'), 0.5, easeIn)
+            yield* data.size.to(new Vector2(0, 0), 0.5, easeIn)
         }
 
         yield createDataB(0)
