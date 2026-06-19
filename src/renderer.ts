@@ -5,6 +5,7 @@ import { RenderingElement } from "./elements/element.ts";
 import { Spline } from "./elements/spline.ts";
 import { Triangle } from "./elements/triangle.ts";
 import { Letter } from "./elements/letter.ts";
+import { Vector4 } from "./vector.ts";
 
 export interface Camera2DTransform {
     position: vec2
@@ -63,7 +64,7 @@ export class Renderer {
         Letter.setup(device, cameraBuffer)
     }
 
-    render(elements: RenderingElement[], camera: Camera2DTransform) {        
+    render(elements: RenderingElement[], camera: Camera2DTransform, background: Vector4) {        
         if(!this.device || !this.instanceBuffer || !this.context || !this.cameraBuffer) throw new Error('Renderer is not setup!')
 
         let requestedInstanceBufferSize = 0
@@ -85,7 +86,7 @@ export class Renderer {
 
         const commandEncoder = this.device.createCommandEncoder()
 
-        const clearColor = { r: 0, g: 0, b: 0, a: 1 }
+        const clearColor = { r: background.x, g: background.y, b: background.z, a: background.w }
 
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [

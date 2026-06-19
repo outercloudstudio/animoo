@@ -387,8 +387,6 @@ export class Letter implements RenderingElement {
 
     public render(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
         if(!Letter.renderPipeline || !Letter.cameraBindGroup) throw new Error('Letter is not setup!')
-
-        console.log('Render', this.character.value)
         
         const font = this.font.value
         const character = this.character.value
