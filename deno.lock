@@ -2,14 +2,31 @@
   "version": "5",
   "specifiers": {
     "npm:earcut@^3.0.2": "3.0.2",
-    "npm:gl-matrix@^3.4.4": "3.4.4"
+    "npm:gl-matrix@^3.4.4": "3.4.4",
+    "npm:mediabunny@^1.49.0": "1.49.0"
   },
   "npm": {
+    "@types/dom-mediacapture-transform@0.1.11": {
+      "integrity": "sha512-Y2p+nGf1bF2XMttBnsVPHUWzRRZzqUoJAKmiP10b5umnO6DDrWI0BrGDJy1pOHoOULVmGSfFNkQrAlC5dcj6nQ==",
+      "dependencies": [
+        "@types/dom-webcodecs"
+      ]
+    },
+    "@types/dom-webcodecs@0.1.13": {
+      "integrity": "sha512-O5hkiFIcjjszPIYyUSyvScyvrBoV3NOEEZx/pMlsu44TKzWNkLVBBxnxJz42in5n3QIolYOcBYFCPZZ0h8SkwQ=="
+    },
     "earcut@3.0.2": {
       "integrity": "sha512-X7hshQbLyMJ/3RPhyObLARM2sNxxmRALLKx1+NVFFnQ9gKzmCrxm9+uLIAdBcvc8FNLpctqlQ2V6AE92Ol9UDQ=="
     },
     "gl-matrix@3.4.4": {
       "integrity": "sha512-latSnyDNt/8zYUB6VIJ6PCh2jBjJX6gnDsoCZ7LyW7GkqrD51EWwa9qCoGixj8YqBtETQK/xY7OmpTF8xz1DdQ=="
+    },
+    "mediabunny@1.49.0": {
+      "integrity": "sha512-hDMtS/q22GFjyB3Yum+a6NHhDtVnye6hgaYTjx3DPUfnckRjzxFmXmCc3UQXdvo7d6PUCl7KM6Y9MRWzlvnAJQ==",
+      "dependencies": [
+        "@types/dom-mediacapture-transform",
+        "@types/dom-webcodecs"
+      ]
     }
   },
   "workspace": {
@@ -19,7 +36,8 @@
     "packageJson": {
       "dependencies": [
         "npm:earcut@^3.0.2",
-        "npm:gl-matrix@^3.4.4"
+        "npm:gl-matrix@^3.4.4",
+        "npm:mediabunny@^1.49.0"
       ]
     }
   }

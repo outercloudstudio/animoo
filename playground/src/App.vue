@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
-import { player, Rect, Vector2, ease, Ellipse, hex, Spline, Triangle, Font, Letter, seconds, easeOut, easeOutBack, easeIn, react, linear, Vector4 } from '@outercloud/animoo'
+import { player, Rect, Vector2, ease, Ellipse, hex, Spline, Triangle, Font, Letter, seconds, easeOut, easeOutBack, easeIn, react, linear, Vector4, VideoRenderer } from '@outercloud/animoo'
 import JetBrainsMono from './assets/JetBrainsMono-Regular.ttf'
 import DroidSerif from './assets/droid-serif.regular.ttf'
 
@@ -10,10 +10,14 @@ onMounted(async () => {
     // const jetBrainsFont = new Font(JetBrainsMono)
     // await jetBrainsFont.load()
 
+    
+})
+
+async function go() {
     const droidSerifFont = new Font(DroidSerif)
     await droidSerifFont.load()
 
-	const animation = await player(canvas.value!, function* ({ camera, add, background }: any) {
+	const videoRenderer = new VideoRenderer(function* ({ camera, add, background }: any) {
         background(hex('#100f21'))
         
         function* animateLetterIn(letter: Letter) {
@@ -243,10 +247,12 @@ onMounted(async () => {
         yield createDataB(2)
 	})
 
-	animation.play()
-})
+	await videoRenderer.setup()
+	await videoRenderer.go()
+}
 </script>
 
 <template>
 	<canvas ref="canvas" width="1920" height="1200" />
+    <button @click="go">Go</button>
 </template>

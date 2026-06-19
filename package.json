@@ -20,6 +20,7 @@
   "homepage": "https://github.com/outercloudstudio/animoo#readme",
   "dependencies": {
     "earcut": "^3.0.2",
-    "gl-matrix": "^3.4.4"
+    "gl-matrix": "^3.4.4",
+    "mediabunny": "^1.49.0"
   }
 }

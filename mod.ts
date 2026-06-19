@@ -1,4 +1,5 @@
 export * from './src/player.ts'
+export * from './src/videoRenderer.ts'
 export * from './src/color.ts'
 export * from './src/delay.ts'
 export * from './src/lerp.ts'
