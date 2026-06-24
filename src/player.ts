@@ -51,6 +51,28 @@ export class Player {
 		this.update()
 	}
 
+    public setContext(generator: any) {
+        this.generator = generator
+
+        this.elements = []
+        this.start = Date.now()
+        this.lastTick = 0
+        this.camera = new Camera2D()
+        this.contexts = [
+            this.generator({
+                camera: this.camera,
+                add: (element: any) => {
+                    this.elements.push(element)
+
+                    return element
+                },
+                background: (color: Vector4) => {
+                    this.background = color
+                }
+            })
+        ]
+    }
+
     private handleContext(context: any) {
         let unfinishedContexts: any[] = []
 
