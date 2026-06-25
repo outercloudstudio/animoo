@@ -55,7 +55,6 @@ export class Player {
         this.generator = generator
 
         this.elements = []
-        this.start = Date.now()
         this.lastTick = 0
         this.camera = new Camera2D()
         this.contexts = [
