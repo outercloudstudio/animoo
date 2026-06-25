@@ -5,13 +5,15 @@ import { Font, Glyph } from "../font.ts";
 
 import earcut from 'earcut';
 
+export type LetterRenderState = {
+    renderPipeline: GPURenderPipeline
+    cameraBindGroup: GPUBindGroup
+}
+
 type Line = { start: { x: number, y: number }, end: { x: number, y: number }, control?: { x: number, y: number } }
 type Contour = { cutout: boolean, lines: Line[] }
 
 export class Letter implements RenderingElement {
-    private static renderPipeline: GPURenderPipeline | null = null
-    private static cameraBindGroup: GPUBindGroup | null = null
-    
     public font: Reactive<Font | null> = react(null)
     public character: Reactive<string> = react('a')
     public position: Reactive<Vector2> = react(new Vector2(0, 0))
@@ -44,7 +46,7 @@ export class Letter implements RenderingElement {
         }
     }
 
-    public static setup(device: GPUDevice, cameraBuffer: GPUBuffer) {
+    public static setup(state: any, device: GPUDevice, cameraBuffer: GPUBuffer) {
         const shaders = `
         struct Camera {
             position: vec2f,
@@ -254,8 +256,10 @@ export class Letter implements RenderingElement {
             ],
         })
 
-        this.renderPipeline = renderPipeline
-        this.cameraBindGroup = cameraBindGroup
+        state.letter = {
+            renderPipeline,
+            cameraBindGroup,
+        } as LetterRenderState
     }
 
     private buildMesh(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number[] {
@@ -385,8 +389,8 @@ export class Letter implements RenderingElement {
         return 68
     }
 
-    public render(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
-        if(!Letter.renderPipeline || !Letter.cameraBindGroup) throw new Error('Letter is not setup!')
+    public render(state: { letter: LetterRenderState | null }, device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
+        if(!state.letter) throw new Error('Letter is not setup!')
         
         const font = this.font.value
         const character = this.character.value
@@ -425,8 +429,8 @@ export class Letter implements RenderingElement {
         device.queue.writeBuffer(instanceBuffer, instancePointer, instance, 0, instance.length)
         device.queue.writeBuffer(instanceBuffer, instancePointer + 15 * 4, instance2, 0, instance2.length)
 
-        passEncoder.setPipeline(Letter.renderPipeline)
-        passEncoder.setBindGroup(0, Letter.cameraBindGroup)
+        passEncoder.setPipeline(state.letter.renderPipeline)
+        passEncoder.setBindGroup(0, state.letter.cameraBindGroup)
         passEncoder.setVertexBuffer(0, this.vertexBuffer)
         passEncoder.setVertexBuffer(1, instanceBuffer, instancePointer, instance.byteLength)
         passEncoder.draw(vertices.length / 5, 1)

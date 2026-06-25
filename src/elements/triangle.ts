@@ -2,11 +2,13 @@ import { OptionallyReactable, react, Reactive } from "../react.ts"
 import { Vector2, Vector4 } from "../vector.ts"
 import { RenderingElement } from "./element.ts";
 
-export class Triangle implements RenderingElement {
-    private static renderPipeline: GPURenderPipeline | null = null
-    private static cameraBindGroup: GPUBindGroup | null = null
-    private static vertexBuffer: GPUBuffer | null = null
+export type TriangleRenderState = {
+    renderPipeline: GPURenderPipeline
+    cameraBindGroup: GPUBindGroup
+    vertexBuffer: GPUBuffer
+}
 
+export class Triangle implements RenderingElement {
     public position: Reactive<Vector2> = react(new Vector2(0, 0))
     public origin: Reactive<Vector2> = react(new Vector2(0.5, 0.5))
     public size: Reactive<Vector2> = react(new Vector2(100, 100))
@@ -30,7 +32,7 @@ export class Triangle implements RenderingElement {
         }
     }
 
-    public static setup(device: GPUDevice, cameraBuffer: GPUBuffer) {
+    public static setup(state: any, device: GPUDevice, cameraBuffer: GPUBuffer) {
         const shaders = `
         struct Camera {
             position: vec2f,
@@ -223,17 +225,19 @@ export class Triangle implements RenderingElement {
             ],
         })
 
-        this.renderPipeline = renderPipeline
-        this.vertexBuffer = vertexBuffer
-        this.cameraBindGroup = cameraBindGroup
+        state.triangle = {
+            renderPipeline,
+            cameraBindGroup,
+            vertexBuffer
+        } as TriangleRenderState
     }
 
     public requestInstanceBufferSize(): number {
         return (2 + 2 + 2 + 1 + 4 + 1) * 4
     }
 
-    public render(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
-        if(!Triangle.renderPipeline || !Triangle.cameraBindGroup || !Triangle.vertexBuffer) throw new Error('Triangle is not setup!')
+    public render(state: { triangle: TriangleRenderState | null }, device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
+        if(!state.triangle) throw new Error('Triangle is not setup!')
         
         const position = this.position.value
         const origin = this.origin.value
@@ -246,9 +250,9 @@ export class Triangle implements RenderingElement {
 
         device.queue.writeBuffer(instanceBuffer, instancePointer, instance, 0, instance.length)
 
-        passEncoder.setPipeline(Triangle.renderPipeline)
-        passEncoder.setBindGroup(0, Triangle.cameraBindGroup)
-        passEncoder.setVertexBuffer(0, Triangle.vertexBuffer)
+        passEncoder.setPipeline(state.triangle.renderPipeline)
+        passEncoder.setBindGroup(0, state.triangle.cameraBindGroup)
+        passEncoder.setVertexBuffer(0, state.triangle.vertexBuffer)
         passEncoder.setVertexBuffer(1, instanceBuffer, instancePointer, instance.byteLength)
         passEncoder.draw(3, 1)
 

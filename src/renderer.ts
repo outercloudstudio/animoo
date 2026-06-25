@@ -1,10 +1,10 @@
 import { vec2 } from 'gl-matrix'
-import { Rect } from './elements/rect.ts';
-import { Ellipse } from './elements/ellipse.ts';
+import { Rect, RectRenderState } from './elements/rect.ts';
+import { Ellipse, EllipseRenderState } from './elements/ellipse.ts';
 import { RenderingElement } from "./elements/element.ts";
-import { Spline } from "./elements/spline.ts";
-import { Triangle } from "./elements/triangle.ts";
-import { Letter } from "./elements/letter.ts";
+import { Spline, SplineRenderState } from "./elements/spline.ts";
+import { Triangle, TriangleRenderState } from "./elements/triangle.ts";
+import { Letter, LetterRenderState } from "./elements/letter.ts";
 import { Vector4 } from "./vector.ts";
 
 export interface Camera2DTransform {
@@ -20,6 +20,13 @@ export class Renderer {
     private context: GPUCanvasContext | null = null
     private cameraBuffer: GPUBuffer | null = null
     private instanceBuffer: GPUBuffer | null = null
+    private state: { rect: RectRenderState | null, ellipse: EllipseRenderState | null, spline: SplineRenderState | null, triangle: TriangleRenderState | null, letter: LetterRenderState | null } = {
+        rect: null,
+        ellipse: null,
+        spline: null,
+        triangle: null,
+        letter: null,
+    }
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas
@@ -57,11 +64,11 @@ export class Renderer {
         this.cameraBuffer = cameraBuffer
         this.instanceBuffer = instanceBuffer
 
-        Rect.setup(device, cameraBuffer)
-        Ellipse.setup(device, cameraBuffer)
-        Spline.setup(device, cameraBuffer)
-        Triangle.setup(device, cameraBuffer)
-        Letter.setup(device, cameraBuffer)
+        Rect.setup(this.state, device, cameraBuffer)
+        Ellipse.setup(this.state, device, cameraBuffer)
+        Spline.setup(this.state, device, cameraBuffer)
+        Triangle.setup(this.state, device, cameraBuffer)
+        Letter.setup(this.state, device, cameraBuffer)
     }
 
     render(elements: RenderingElement[], camera: Camera2DTransform, background: Vector4) {        
@@ -105,7 +112,7 @@ export class Renderer {
 
         let instanceBufferPointer = 0
         for(const element of elements) {
-            instanceBufferPointer += element.render(this.device, passEncoder, this.instanceBuffer, instanceBufferPointer)
+            instanceBufferPointer += element.render(this.state, this.device, passEncoder, this.instanceBuffer, instanceBufferPointer)
         }
 
         passEncoder.end()

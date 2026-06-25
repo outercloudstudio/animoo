@@ -2,11 +2,13 @@ import { OptionallyReactable, react, Reactive } from "../react.ts"
 import { Vector2, Vector4 } from "../vector.ts"
 import { RenderingElement } from "./element.ts";
 
-export class Spline implements RenderingElement {
-    private static renderPipeline: GPURenderPipeline | null = null
-    private static cameraBindGroup: GPUBindGroup | null = null
-    private static vertexBuffer: GPUBuffer | null = null
+export type SplineRenderState = {
+    renderPipeline: GPURenderPipeline
+    cameraBindGroup: GPUBindGroup
+    vertexBuffer: GPUBuffer
+}
 
+export class Spline implements RenderingElement {
     public positionA: Reactive<Vector2> = react(new Vector2(0, 0))
     public positionB: Reactive<Vector2> = react(new Vector2(300, 300))
     public positionC: Reactive<Vector2> = react(new Vector2(300, 0))
@@ -30,7 +32,7 @@ export class Spline implements RenderingElement {
         }
     }
 
-    public static setup(device: GPUDevice, cameraBuffer: GPUBuffer) {
+    public static setup(state: any, device: GPUDevice, cameraBuffer: GPUBuffer) {
         const shaders = `
         struct Camera {
             position: vec2f,
@@ -258,17 +260,19 @@ export class Spline implements RenderingElement {
             ],
         })
 
-        this.renderPipeline = renderPipeline
-        this.vertexBuffer = vertexBuffer
-        this.cameraBindGroup = cameraBindGroup
+        state.spline = {
+            renderPipeline,
+            cameraBindGroup,
+            vertexBuffer
+        } as SplineRenderState
     }
 
     public requestInstanceBufferSize(): number {
         return (2 + 2 + 2 + 1 + 4 + 1) * 4
     }
 
-    public render(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
-        if(!Spline.renderPipeline || !Spline.cameraBindGroup || !Spline.vertexBuffer) throw new Error('Spline is not setup!')
+    public render(state: { spline: SplineRenderState | null }, device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
+        if(!state.spline) throw new Error('Spline is not setup!')
         
         const positionA = this.positionA.value
         const positionB = this.positionB.value
@@ -281,9 +285,9 @@ export class Spline implements RenderingElement {
 
         device.queue.writeBuffer(instanceBuffer, instancePointer, instance, 0, instance.length)
 
-        passEncoder.setPipeline(Spline.renderPipeline)
-        passEncoder.setBindGroup(0, Spline.cameraBindGroup)
-        passEncoder.setVertexBuffer(0, Spline.vertexBuffer)
+        passEncoder.setPipeline(state.spline.renderPipeline)
+        passEncoder.setBindGroup(0, state.spline.cameraBindGroup)
+        passEncoder.setVertexBuffer(0, state.spline.vertexBuffer)
         passEncoder.setVertexBuffer(1, instanceBuffer, instancePointer, instance.byteLength)
         passEncoder.draw(6, 1)
 

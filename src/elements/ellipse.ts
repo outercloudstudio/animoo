@@ -2,11 +2,13 @@ import { OptionallyReactable, react, Reactive } from "../react.ts"
 import { Vector2, Vector4 } from "../vector.ts"
 import { RenderingElement } from "./element.ts";
 
-export class Ellipse implements RenderingElement {
-    private static renderPipeline: GPURenderPipeline | null = null
-    private static cameraBindGroup: GPUBindGroup | null = null
-    private static vertexBuffer: GPUBuffer | null = null
+export type EllipseRenderState = {
+    renderPipeline: GPURenderPipeline
+    cameraBindGroup: GPUBindGroup
+    vertexBuffer: GPUBuffer
+}
 
+export class Ellipse implements RenderingElement {
     public position: Reactive<Vector2> = react(new Vector2(0, 0))
     public origin: Reactive<Vector2> = react(new Vector2(0.5, 0.5))
     public size: Reactive<Vector2> = react(new Vector2(100, 100))
@@ -28,7 +30,7 @@ export class Ellipse implements RenderingElement {
         }
     }
 
-    public static setup(device: GPUDevice, cameraBuffer: GPUBuffer) {
+    public static setup(state: any, device: GPUDevice, cameraBuffer: GPUBuffer) {
         const shaders = `
         struct Camera {
             position: vec2f,
@@ -204,17 +206,19 @@ export class Ellipse implements RenderingElement {
             ],
         })
 
-        this.renderPipeline = renderPipeline
-        this.vertexBuffer = vertexBuffer
-        this.cameraBindGroup = cameraBindGroup
+        state.ellipse = {
+            renderPipeline,
+            cameraBindGroup,
+            vertexBuffer
+        } as EllipseRenderState
     }
 
     public requestInstanceBufferSize(): number {
         return (2 + 2 + 2 + 1 + 4) * 4
     }
 
-    public render(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
-        if(!Ellipse.renderPipeline || !Ellipse.cameraBindGroup || !Ellipse.vertexBuffer) throw new Error('Ellipse is not setup!')
+    public render(state: { ellipse: EllipseRenderState | null }, device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
+        if(!state.ellipse) throw new Error('Ellipse is not setup!')
         
         const position = this.position.value
         const origin = this.origin.value
@@ -226,9 +230,9 @@ export class Ellipse implements RenderingElement {
 
         device.queue.writeBuffer(instanceBuffer, instancePointer, instance, 0, instance.length)
 
-        passEncoder.setPipeline(Ellipse.renderPipeline)
-        passEncoder.setBindGroup(0, Ellipse.cameraBindGroup)
-        passEncoder.setVertexBuffer(0, Ellipse.vertexBuffer)
+        passEncoder.setPipeline(state.ellipse.renderPipeline)
+        passEncoder.setBindGroup(0, state.ellipse.cameraBindGroup)
+        passEncoder.setVertexBuffer(0, state.ellipse.vertexBuffer)
         passEncoder.setVertexBuffer(1, instanceBuffer, instancePointer, instance.byteLength)
         passEncoder.draw(6, 1)
 

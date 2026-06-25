@@ -2,11 +2,13 @@ import { OptionallyReactable, react, Reactive } from "../react.ts"
 import { Vector2, Vector4 } from "../vector.ts"
 import { RenderingElement } from "./element.ts";
 
-export class Rect implements RenderingElement {
-    private static renderPipeline: GPURenderPipeline | null = null
-    private static cameraBindGroup: GPUBindGroup | null = null
-    private static vertexBuffer: GPUBuffer | null = null
+export type RectRenderState = {
+    renderPipeline: GPURenderPipeline
+    cameraBindGroup: GPUBindGroup
+    vertexBuffer: GPUBuffer
+}
 
+export class Rect implements RenderingElement {
     public position: Reactive<Vector2> = react(new Vector2(0, 0))
     public origin: Reactive<Vector2> = react(new Vector2(0.5, 0.5))
     public size: Reactive<Vector2> = react(new Vector2(100, 100))
@@ -30,7 +32,7 @@ export class Rect implements RenderingElement {
         }
     }
 
-    public static setup(device: GPUDevice, cameraBuffer: GPUBuffer) {
+    public static setup(state: any, device: GPUDevice, cameraBuffer: GPUBuffer) {
         const shaders = `
         struct Camera {
             position: vec2f,
@@ -226,17 +228,19 @@ export class Rect implements RenderingElement {
             ],
         })
 
-        this.renderPipeline = renderPipeline
-        this.vertexBuffer = vertexBuffer
-        this.cameraBindGroup = cameraBindGroup
+        state.rect = {
+            renderPipeline,
+            cameraBindGroup,
+            vertexBuffer
+        } as RectRenderState
     }
 
     public requestInstanceBufferSize(): number {
         return (2 + 2 + 2 + 1 + 4 + 1) * 4
     }
 
-    public render(device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
-        if(!Rect.renderPipeline || !Rect.cameraBindGroup || !Rect.vertexBuffer) throw new Error('Rect is not setup!')
+    public render(state: { rect: RectRenderState | null }, device: GPUDevice, passEncoder: GPURenderPassEncoder, instanceBuffer: GPUBuffer, instancePointer: number): number {
+        if(!state.rect) throw new Error('Rect is not setup!')
         
         const position = this.position.value
         const origin = this.origin.value
@@ -249,9 +253,9 @@ export class Rect implements RenderingElement {
 
         device.queue.writeBuffer(instanceBuffer, instancePointer, instance, 0, instance.length)
 
-        passEncoder.setPipeline(Rect.renderPipeline)
-        passEncoder.setBindGroup(0, Rect.cameraBindGroup)
-        passEncoder.setVertexBuffer(0, Rect.vertexBuffer)
+        passEncoder.setPipeline(state.rect.renderPipeline)
+        passEncoder.setBindGroup(0, state.rect.cameraBindGroup)
+        passEncoder.setVertexBuffer(0, state.rect.vertexBuffer)
         passEncoder.setVertexBuffer(1, instanceBuffer, instancePointer, instance.byteLength)
         passEncoder.draw(6, 1)
 
