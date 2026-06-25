@@ -30,5 +30,5 @@ async function go() {
 
 <template>
 	<canvas ref="canvas" width="1920" height="1200" />
-    <button @click="go" >Go</button>
+    <button @click="go" >Render to mp4</button>
 </template>
