@@ -1,33 +1,34 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
-import { player } from '@outercloud/animoo'
+import { player, VideoRenderer } from '@outercloud/animoo'
 
 const canvas = useTemplateRef('canvas')
+let latestClip: any = null
 
 onMounted(async () => {
-    const clip = (await import('@virtual:external/test.ts')).clip
+    const clip = (await import('@virtual:external/project.ts')).clip
+    latestClip = clip
 
     const animation = await player(canvas.value!, clip)
     animation.play()
 
     if (import.meta.hot) {
-        import.meta.hot.accept('@virtual:external/test.ts', module => {
+        import.meta.hot.accept('@virtual:external/project.ts', module => {
             animation.setContext(module.clip)
+            latestClip = clip
         })
     }
 })
 
-// async function go() {
-    // const droidSerifFont = new Font(DroidSerif)
-    // await droidSerifFont.load()
+async function go() {
+	const videoRenderer = new VideoRenderer(latestClip)
 
-// 	const videoRenderer = new VideoRenderer()
-
-// 	await videoRenderer.setup()
-// 	await videoRenderer.go()
-// }
+	await videoRenderer.setup()
+	await videoRenderer.go()
+}
 </script>
 
 <template>
 	<canvas ref="canvas" width="1920" height="1200" />
+    <button @click="go" >Go</button>
 </template>
