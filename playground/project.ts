@@ -1,10 +1,10 @@
-import { player, Rect, Vector2, ease, Ellipse, hex, Spline, Triangle, Font, Letter, seconds, easeOut, easeOutBack, easeIn, react, linear, Vector4, VideoRenderer } from '@outercloud/animoo'
+import { player, Rect, Vector2, ease, Ellipse, hex, Spline, Triangle, Font, Letter, seconds, easeOut, easeOutBack, easeIn, react, linear, Vector4, VideoRenderer, project, clip } from '@outercloud/animoo'
 import DroidSerif from './src/assets/droid-serif.regular.ttf'
 
 const droidSerifFont = new Font(DroidSerif)
 await droidSerifFont.load()
 
-export const clip = function* ({ camera, add, background }: any) {
+const clip1 = clip('Clip 1', {}, function* ({ camera, add, background }: any) {
     background(hex('#100f21'))
     
     function* animateLetterIn(letter: Letter) {
@@ -232,4 +232,10 @@ export const clip = function* ({ camera, add, background }: any) {
     yield createDataB(0)
     yield createDataB(1)
     yield createDataB(2)
-}
+})
+
+const clip2 = clip('Clip 2', {}, function* ({ background }: any) {
+    background(hex('#00FF00'))
+})
+
+export default project([ clip1, clip2 ])

@@ -1,6 +1,6 @@
 # Animoo
 
-**The web motion graphics library accelerated with WebGPU.** Animoo let's you
+**The web motion graphics framework accelerated with WebGPU.** Animoo let's you
 create procedural motion graphics with a friendly API. Animoo can be embedable
 directly into your website or used to export your animations as videos.
 
@@ -8,3 +8,5 @@ directly into your website or used to export your animations as videos.
 
 If you find Animoo helpful or interesting, give this repo a star. ⭐ It lets me
 know people are interested.
+
+# Quick Start

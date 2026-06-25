@@ -1,3 +1,4 @@
+export * from './src/project.ts'
 export * from './src/player.ts'
 export * from './src/videoRenderer.ts'
 export * from './src/color.ts'
