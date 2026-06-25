@@ -238,4 +238,87 @@ const clip2 = clip('Clip 2', {}, function* ({ background }: any) {
     background(hex('#00FF00'))
 })
 
-export default project([ clip1, clip2 ])
+const animooLogo = clip('Animoo Logo', {}, function* ({ add, background }: any) {
+    background(hex('#000000'))
+    
+    function* animateLetterIn(letter: Letter, size: number) {
+        letter.size.value = new Vector2(0, 0)
+        letter.rotation.value = Math.PI / 8
+        letter.color.value = hex('#FFFFFF00')
+        
+        yield letter.rotation.to(0, 0.4, easeOutBack)
+        yield letter.color.to(hex('#FFFFFF'), 0.4, easeOutBack)
+        yield* letter.size.to(new Vector2(size, size), 0.4, easeOutBack)
+    }
+
+    function* animateLetterIn(letter: Letter, size: number) {
+        letter.size.value = new Vector2(0, 0)
+        letter.rotation.value = Math.PI / 8
+        letter.color.value = hex('#FFFFFF00')
+        
+        yield letter.rotation.to(0, 0.4, easeOutBack)
+        yield letter.color.to(hex('#FFFFFF'), 0.4, easeOutBack)
+        yield* letter.size.to(new Vector2(size, size), 0.4, easeOutBack)
+    }
+
+    function* animateLetterOut(letter: Letter) {
+        yield* seconds(2.2)
+        
+        yield letter.rotation.to(Math.PI / 16, 0.4, easeOutBack)
+        yield* seconds(0.05)
+        yield letter.color.to(hex('#FFFFFF00'), 0.4, easeIn)
+        yield* letter.size.to(new Vector2(0, 0), 0.4, easeIn)
+    }
+
+    function* renderText(text: string, position: Vector2, size: number, color: Vector4, order?: number) {
+        let positionX = 0
+        for(const character of text) {
+            const letter = add(new Letter({
+                font: droidSerifFont,
+                size: new Vector2(size, size),
+                character: character,
+                color,
+                order: order ?? 0
+            }))
+
+            positionX += letter.spacing().left
+
+            letter.position.value = new Vector2(position.x + positionX, position.y)
+
+            positionX += letter.spacing().width + letter.spacing().right
+
+            yield animateLetterIn(letter, size)
+            yield* seconds(0.05)
+            yield animateLetterOut(letter)
+        }
+    }
+
+    function* dot() {
+        const dot = add(new Rect({
+            color: hex('#f5d44200'),
+            position: new Vector2(-91 - 31 / 2, 106),
+            size: new Vector2(31, 35),
+            radius: 15,
+            origin: new Vector2(0, 0.5),
+            order: 400
+        }))
+
+        yield* seconds(0.5)
+        
+        yield dot.color.to(hex('#f5d442'), 0.2, easeIn)
+        yield* dot.size.to(new Vector2(615, 35), 1, ease)
+
+        yield function*() {
+            yield* seconds(0.9)
+            yield* dot.color.to(hex('#f5d44200'), 0.1, easeIn)
+        }()
+        yield dot.position.to(new Vector2(-91 - 31 / 2 + 615, 106), 1, easeIn)
+        yield* dot.size.to(new Vector2(0, 35), 1, easeIn)
+    }
+
+    yield dot()
+    
+    yield* renderText('Animoo', new Vector2(-500, -80), 200, hex('#FFFFFF'), 100)
+})
+
+export default project([ clip1, clip2, animooLogo ])
