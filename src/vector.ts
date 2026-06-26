@@ -16,4 +16,8 @@ export class Vector3 {
 
 export class Vector4 {
 	constructor(public x: number, public y: number, public z: number, public w: number) {}
+
+    public add(b: Vector4): Vector4 {
+		return new Vector4(this.x + b.x, this.y + b.y, this.z + b.z, this.w + b.w)
+	}
 }

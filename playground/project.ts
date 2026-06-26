@@ -262,7 +262,7 @@ const animooLogo = clip('Animoo Logo', {}, function* ({ add, background }: any) 
     }
 
     function* animateLetterOut(letter: Letter) {
-        yield* seconds(2.2)
+        yield* seconds(1.7)
         
         yield letter.rotation.to(Math.PI / 16, 0.4, easeOutBack)
         yield* seconds(0.05)
@@ -294,29 +294,68 @@ const animooLogo = clip('Animoo Logo', {}, function* ({ add, background }: any) 
     }
 
     function* dot() {
+        const colors = ['#f54e42', '#f5d442', '#42f590', '#428df5', '#6942f5', '#ffffff'].map(color => hex(color))
+
+        let first = true
+        let index = 0
+        for(const color of colors.toReversed()) {
+            yield function*() {
+                const isFirst = first
+                first = false
+                const myIndex = index
+                index++
+                
+                const dot = add(new Rect({
+                    color: color.add(new Vector4(0, 0, 0, -1)),
+                    position: new Vector2(-91 - 31 / 2, 106),
+                    size: new Vector2(31, 35),
+                    radius: 15,
+                    origin: new Vector2(0, 0.5),
+                    order: isFirst ? 401 : 400
+                }))
+                
+                yield* seconds(0.5)
+                
+                yield dot.color.to(color, 0.1, easeIn)
+                yield* dot.size.to(new Vector2(615, 35), isFirst ? 0.7 : 0.4, ease)
+
+                if(!isFirst) {
+                    dot.order.value = 400 - myIndex
+
+                    yield* seconds(0.3)
+                }
+
+                yield function*() {
+                    yield* seconds(0.9)
+                    yield* dot.color.to(color.add(new Vector4(0, 0, 0, -1)), 0.1, easeIn)
+                }()
+                yield dot.position.to(new Vector2(-91 - 31 / 2 + 615, 106), 0.7, easeIn)
+                yield* dot.size.to(new Vector2(0, 35), 0.7, easeIn)
+            }()
+
+            yield* seconds(0.04)
+        }
+    }
+
+    function* dot2() {
+        yield* seconds(1)
+        
         const dot = add(new Rect({
-            color: hex('#f5d44200'),
+            color: hex('#ffffff'),
             position: new Vector2(-91 - 31 / 2, 106),
-            size: new Vector2(31, 35),
+            size: new Vector2(200, 35),
             radius: 15,
             origin: new Vector2(0, 0.5),
             order: 400
         }))
-
-        yield* seconds(0.5)
         
-        yield dot.color.to(hex('#f5d442'), 0.2, easeIn)
-        yield* dot.size.to(new Vector2(615, 35), 1, ease)
+        yield* seconds(0.4)
 
-        yield function*() {
-            yield* seconds(0.9)
-            yield* dot.color.to(hex('#f5d44200'), 0.1, easeIn)
-        }()
-        yield dot.position.to(new Vector2(-91 - 31 / 2 + 615, 106), 1, easeIn)
-        yield* dot.size.to(new Vector2(0, 35), 1, easeIn)
+        yield* dot.size.to(new Vector2(0, 35), 0.6, easeOut)
     }
 
     yield dot()
+    yield dot2()
     
     yield* renderText('Animoo', new Vector2(-500, -80), 200, hex('#FFFFFF'), 100)
 })
