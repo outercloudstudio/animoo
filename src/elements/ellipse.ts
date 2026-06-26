@@ -239,7 +239,7 @@ export class Ellipse implements RenderingElement {
         return instance.byteLength
 	}
 
-    public renderingOrder() {
+    public renderingOrder(): number {
         return this.order.value
     }
 }
