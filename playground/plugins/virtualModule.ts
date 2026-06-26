@@ -1,5 +1,7 @@
 import path from 'node:path'
 
+const projectPath = Deno.env.get("ANIMOO_PROJECT_PATH")
+
 const prefix = '@virtual:external/'
 
 export function virtualModule() {
@@ -10,7 +12,7 @@ export function virtualModule() {
             if (id.startsWith(prefix)) {
                 const relativePath = id.slice(prefix.length)
 
-                const absolutePath = path.resolve(Deno.cwd(), relativePath)
+                const absolutePath = path.resolve(projectPath, relativePath)
 
                 return absolutePath
             }
