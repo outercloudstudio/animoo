@@ -1,6 +1,6 @@
 {
 	"name": "@outercloud/animoo",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"exports": "./mod.ts",
 	"tasks": {
 		"dev": "deno run -A npm:vite ./preview/"
