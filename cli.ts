@@ -1,6 +1,6 @@
 const command = new Deno.Command("deno", {
   args: ["task", "dev"],
-  cwd: new URL("./playground", import.meta.url).pathname,
+  cwd: new URL("./", import.meta.url).pathname,
   env: {
     ...Deno.env.toObject(),
     ANIMOO_PROJECT_PATH: Deno.cwd(),
