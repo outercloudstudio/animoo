@@ -14,8 +14,8 @@ know people are interested.
 ## Installation
 
 ```bash
-deno install @outercloud/animoo
-deno install --global --allow-all -n animoo @outercloud/animoo/cli.ts
+deno add jsr:@outercloud/animoo
+deno install --global --allow-all -n animoo jsr:@outercloud/animoo/cli.ts
 ```
 
 ## Quick Start
@@ -52,7 +52,7 @@ I'd love to hear your feedback or whatever you're working on with Animoo.
 
 ## Contributing
 
-[See CONTRIBUTING.md](./.github/CONTRIBUTING.md)
+See [the contributing guide](./.github/CONTRIBUTING.md).
 
 ## License
 
@@ -60,4 +60,4 @@ I'd love to hear your feedback or whatever you're working on with Animoo.
 
 ---
 
-Made with love from [Outer Cloud](https://outercloud.dev)
+Made with love from [Outer Cloud](https://outercloud.dev).
