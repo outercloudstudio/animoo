@@ -3,8 +3,8 @@
 ![Animoo Logo Hero](./assets/animoo-hero.gif)
 
 **The web motion graphics framework accelerated with WebGPU.** Animoo let's you
-create procedural motion graphics with a friendly API. Animoo can be embedable
-directly into your website or used to export your animations as videos.
+create procedural motion graphics with a friendly API. Animoo is directly
+embedable into your website or export your animations as videos.
 
 ### By the Way
 
