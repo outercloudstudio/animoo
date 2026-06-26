@@ -8,7 +8,7 @@ export function virtualModule() {
     return {
         name: 'virtual-module',
         enforce: 'pre',
-        resolveId(id) {
+        resolveId(id) {            
             if (id.startsWith(prefix)) {
                 const relativePath = id.slice(prefix.length)
 
