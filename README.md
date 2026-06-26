@@ -50,6 +50,10 @@ I'd love to hear your feedback or whatever you're working on with Animoo.
 - [Discord](https://discord.gg/z9GKKaJfhJ)
 - [Open an Issue](https://github.com/outercloudstudio/animoo/issues)
 
+## Contributing
+
+[See CONTRIBUTING.md](./.github/CONTRIBUTING.md)
+
 ## License
 
 [MIT](https://raw.githubusercontent.com/outercloudstudio/animoo/refs/heads/main/LICENSE)
