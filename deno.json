@@ -1,15 +1,12 @@
 {
-	"name": "animoo",
-	"version": "0.0.0",
+	"name": "@outercloud/animoo",
+	"version": "1.0.0",
 	"exports": "./mod.ts",
 	"tasks": {
-		"dev": "cd preview && vite"
+		"dev": "deno run -A npm:vite ./preview/"
 	},
 	"compilerOptions": {
 		"lib": ["dom", "dom.iterable", "esnext", "deno.window"],
         "noImplicitAny": false
-	},
-	"imports": {
-		"gl-matrix": "npm:gl-matrix@^3.4.4"
 	}
 }
